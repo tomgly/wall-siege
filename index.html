@@ -121,8 +121,7 @@
     </div>
   </div>
 
-  <button class="btn btn-ghost mt16" id="btn-cancel-wait"
-    onclick="Network.leave(); document.getElementById('screen-waiting').classList.remove('active'); document.getElementById('screen-lobby').classList.add('active');">
+  <button class="btn btn-ghost mt16" id="btn-cancel-wait" onclick="Network.leave(); history.replaceState(null,'',location.pathname); document.getElementById('screen-waiting').classList.remove('active'); document.getElementById('screen-lobby').classList.add('active');">
     キャンセル
   </button>
 

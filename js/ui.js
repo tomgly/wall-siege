@@ -18,7 +18,53 @@ const UI = (() => {
     _bindLobbyEvents();
     _bindCanvasEvents();
     _bindNetworkEvents();
+    _applyUrlParams();
+  }
+
+  // ── URLパラメータを読んで自動入力・自動接続 ──────────────
+  function _applyUrlParams() {
+    const params = new URLSearchParams(location.search);
+    const code   = params.get('code');
+    const user   = params.get('user'); // '0'=先手/ホスト '1'=後手/ゲスト '-1'=観戦
+
+    if (code) {
+      document.getElementById('input-room-code').value = code.toUpperCase();
+    }
+
+    if (code && user !== null) {
+      const u = parseInt(user, 10);
+      if (u === -1) {
+        // 観戦として自動接続
+        setTimeout(async () => {
+          try {
+            await Network.spectateRoom(code);
+            myIndex = -1;
+            showScreen('screen-waiting');
+            setStatus('観戦を待っています…');
+          } catch (e) { showScreen('screen-lobby'); }
+        }, 300);
+        return;
+      } else if (u === 1) {
+        // ゲストとして待機
+        showScreen('screen-lobby');
+        document.getElementById('input-name').focus();
+        return;
+      }
+    }
+
     showScreen('screen-lobby');
+  }
+
+  // ── URLを更新 ───────────────────────────
+  function _setUrl(code, user) {
+    const params = new URLSearchParams();
+    if (code) params.set('code', code);
+    if (user !== undefined) params.set('user', user);
+    history.replaceState(null, '', '?' + params.toString());
+  }
+
+  function _clearUrl() {
+    history.replaceState(null, '', location.pathname);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -61,8 +107,8 @@ const UI = (() => {
     // パネルラベルを先手/後手で更新
     if (isSpectator) {
       // my-panel=p1, opp-panel=p0
-      document.getElementById('my-label').textContent  = 1 === firstTurn ? '先手' : '後手';
-      document.getElementById('opp-label').textContent = 0 === firstTurn ? '先手' : '後手';
+      document.getElementById('my-label').textContent  = 1 === firstTurn ? '先手（下）' : '後手（下）';
+      document.getElementById('opp-label').textContent = 0 === firstTurn ? '先手（上）' : '後手（上）';
     } else {
       const iAmFirst = myIndex === firstTurn;
       document.getElementById('my-label').textContent  = iAmFirst ? '先手（あなた）' : '後手（あなた）';
@@ -97,7 +143,7 @@ const UI = (() => {
       try {
         const code = await Network.createRoom(name);
         myIndex = 0;
-
+        _setUrl(code, 0);
         document.getElementById('room-code-display').textContent = code;
         showScreen('screen-waiting');
         setStatus('相手の参加を待っています…');
@@ -118,6 +164,7 @@ const UI = (() => {
 
       playerNames[1] = name;
       _setLoading('btn-join', true);
+      _setUrl(code, 1);
 
       try {
         myIndex = await Network.joinRoom(code, name);
@@ -135,6 +182,7 @@ const UI = (() => {
       if (!code) { _flashError('input-room-code', 'ルームコードを入力してください'); return; }
 
       _setLoading('btn-spectate', true);
+      _setUrl(code, -1);
       try {
         await Network.spectateRoom(code);
         myIndex = -1;
@@ -166,6 +214,7 @@ const UI = (() => {
     // ── リスタート ─────────────────────────────────────────
     document.getElementById('btn-restart').addEventListener('click', () => {
       Network.leave();
+      _clearUrl();
       document.getElementById('result-overlay').classList.remove('show');
       gameState  = null;
       myIndex    = -1;
@@ -251,10 +300,11 @@ const UI = (() => {
   }
 
   // ─────────────────────────────────────────────────────────
-  //  Canvas マウスイベント
+  //  Canvas マウス/タッチイベント
   // ─────────────────────────────────────────────────────────
   function _bindCanvasEvents() {
 
+    // ── マウス ────────────────────────────────────────────
     canvas.addEventListener('mousemove', (e) => {
       if (!gameState || !myTurn || gameState.over) return;
       const { x, y } = _canvasPos(e);
@@ -263,7 +313,7 @@ const UI = (() => {
 
     canvas.addEventListener('mouseleave', () => {
       wallPreview = null;
-      Render.draw(gameState, myIndex, highlights, wallPreview);
+      if (gameState) Render.draw(gameState, myIndex, highlights, wallPreview);
     });
 
     canvas.addEventListener('click', (e) => {
@@ -271,15 +321,86 @@ const UI = (() => {
       const { x, y } = _canvasPos(e);
       _onClick(x, y);
     });
+
+    // ── タッチ（ドラッグ方向で壁向きを自動判定） ────────
+    let touchStart = null;  // { x, y, time }
+    const DRAG_THRESHOLD = 18;  // px（canvas座標）壁モード判定距離
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (!gameState || !myTurn || gameState.over) return;
+      const t = e.touches[0];
+      const pos = _canvasPosByClient(t.clientX, t.clientY);
+      touchStart = { ...pos, time: Date.now() };
+      wallPreview = null;
+      Render.draw(gameState, myIndex, highlights, null);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!gameState || !myTurn || gameState.over || !touchStart) return;
+      const t = e.touches[0];
+      const cur = _canvasPosByClient(t.clientX, t.clientY);
+      const dx = cur.x - touchStart.x;
+      const dy = cur.y - touchStart.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < DRAG_THRESHOLD) {
+        // まだ移動モード扱い
+        wallPreview = null;
+        Render.draw(gameState, myIndex, highlights, null);
+        return;
+      }
+
+      // ドラッグ距離が閾値超え → 方向で壁向き決定
+      const dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+      const hit = Render.xyWallHit(touchStart.x, touchStart.y, dir);
+      if (hit && gameState.players[myIndex].wallsLeft > 0) {
+        const valid = Game.canPlaceWall(gameState, hit.c, hit.r, dir);
+        wallPreview = { ...hit, dir, valid };
+      } else {
+        wallPreview = null;
+      }
+      Render.draw(gameState, myIndex, highlights, wallPreview);
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (!gameState || !myTurn || gameState.over || !touchStart) return;
+
+      const t = e.changedTouches[0];
+      const cur = _canvasPosByClient(t.clientX, t.clientY);
+      const dx = cur.x - touchStart.x;
+      const dy = cur.y - touchStart.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < DRAG_THRESHOLD) {
+        // 短タップ → 移動
+        _onClick(touchStart.x, touchStart.y);
+      } else if (wallPreview && wallPreview.valid) {
+        // ドラッグ → 壁設置
+        _doWall(wallPreview.c, wallPreview.r, wallPreview.dir);
+      } else if (wallPreview) {
+        setStatus('ここには壁を置けません');
+      }
+
+      touchStart  = null;
+      wallPreview = null;
+      if (gameState) Render.draw(gameState, myIndex, highlights, null);
+    }, { passive: false });
   }
 
   function _canvasPos(e) {
+    return _canvasPosByClient(e.clientX, e.clientY);
+  }
+
+  function _canvasPosByClient(clientX, clientY) {
     const rect   = canvas.getBoundingClientRect();
     const scaleX = canvas.width  / rect.width;
     const scaleY = canvas.height / rect.height;
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top)  * scaleY,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top)  * scaleY,
     };
   }
 
@@ -291,7 +412,7 @@ const UI = (() => {
       const dir = inputMode === 'wall-h' ? 'h' : 'v';
       const hit = Render.xyWallHit(x, y, dir);
       if (hit) {
-        const valid = gameState.players[myIndex].wallsLeft > 0 && Game.canPlaceWall(gameState, hit.c, hit.r, dir);
+        const valid = gameState.players[myIndex].wallsLeft > 0 &&  Game.canPlaceWall(gameState, hit.c, hit.r, dir);
         wallPreview = { ...hit, dir, valid };
       } else {
         wallPreview = null;
