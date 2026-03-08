@@ -1,12 +1,16 @@
 const Game = (() => {
 
   // ── 初期状態を生成 ─────────────────────────────────────────
-  // ホスト側がランダム決定して両者に送る
+  // firstTurn: 0 or 1
+  // 後手は壁+1本のハンデ
   function createState(nameA, nameB, firstTurn = 0) {
+    const secondTurn = 1 - firstTurn;
+    const walls = [CFG.MAX_WALLS, CFG.MAX_WALLS];
+    walls[secondTurn] += 1;   // 後手に +1本
     return {
       players: [
-        { name: nameA, col: 3, row: 0, wallsLeft: CFG.MAX_WALLS }, // A = 上 → ゴール row6
-        { name: nameB, col: 3, row: 6, wallsLeft: CFG.MAX_WALLS }, // B = 下 → ゴール row0
+        { name: nameA, col: 3, row: 0, wallsLeft: walls[0] }, // A = 上 → ゴール row6
+        { name: nameB, col: 3, row: 6, wallsLeft: walls[1] }, // B = 下 → ゴール row0
       ],
       walls: { h: [], v: [] },  // h[]: {c, r, owner}  v[]: {c, r, owner}
       turn: firstTurn,  // 0=A, 1=B（ランダム先手）
@@ -61,7 +65,7 @@ const Game = (() => {
     right: [  1,  0 ],
   };
 
-  // ── 隣接セル列挙 ───────────────────────
+  // ── 隣接セル列挙（BFS用・コマ無視） ───────────────────────
   function neighbors(state, col, row) {
     const result = [];
     for (const [dir, [dc, dr]] of Object.entries(DIR_DELTA)) {
@@ -87,7 +91,7 @@ const Game = (() => {
     return false;
   }
 
-  // ── 合法移動先を取得 ───────────────
+  // ── 合法移動先を取得（跳び越し・貫通なし） ───────────────
   function legalMoves(state, pIdx) {
     const me    = state.players[pIdx];
     const other = state.players[1 - pIdx];
