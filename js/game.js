@@ -1,14 +1,15 @@
 const Game = (() => {
 
   // ── 初期状態を生成 ─────────────────────────────────────────
-  function createState(nameA, nameB) {
+  // ホスト側がランダム決定して両者に送る
+  function createState(nameA, nameB, firstTurn = 0) {
     return {
       players: [
         { name: nameA, col: 3, row: 0, wallsLeft: CFG.MAX_WALLS }, // A = 上 → ゴール row6
         { name: nameB, col: 3, row: 6, wallsLeft: CFG.MAX_WALLS }, // B = 下 → ゴール row0
       ],
-      walls: { h: [], v: [] },  // h[]: {c,r}  v[]: {c,r}
-      turn: 0,     // 0=A, 1=B
+      walls: { h: [], v: [] },  // h[]: {c, r, owner}  v[]: {c, r, owner}
+      turn: firstTurn,  // 0=A, 1=B（ランダム先手）
       over: false,
       winner: null // 0 or 1
     };
@@ -169,8 +170,8 @@ const Game = (() => {
 
   function applyWall(state, pIdx, c, r, dir) {
     const next = deepCloneState(state);
-    if (dir === 'h') next.walls.h.push({ c, r });
-    else             next.walls.v.push({ c, r });
+    if (dir === 'h') next.walls.h.push({ c, r, owner: pIdx });
+    else next.walls.v.push({ c, r, owner: pIdx });
     next.players[pIdx].wallsLeft--;
     next.turn = 1 - pIdx;
     return next;

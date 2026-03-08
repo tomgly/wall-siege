@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-//  ui.js — 画面管理・マウス入力・ゲームループ
-// ═══════════════════════════════════════════════════════════════
-
 const UI = (() => {
 
   // ── 状態 ──────────────────────────────────────────────────
@@ -146,16 +142,17 @@ const UI = (() => {
   function _bindNetworkEvents() {
 
     // ゲスト参加通知 → ホストに届く
-    Network.onOpponentJoined(async (opponentName) => {
+    Network.onOpponentJoined(async (opponentName, firstTurn) => {
       if (myIndex === 0) {
-        // ホスト: 承認を返してゲーム開始
+        // ホスト: 先手をランダム決定して承認と一緒に送る
         playerNames[1] = opponentName;
-        await Network.ackJoin(playerNames[0]);
-        _startGame(playerNames[0], playerNames[1]);
+        const ft = Math.random() < 0.5 ? 0 : 1;
+        await Network.ackJoin(playerNames[0], ft);
+        _startGame(playerNames[0], playerNames[1], ft);
       } else {
-        // ゲスト: ホスト名が届いた → ゲーム開始
+        // ゲスト: ホスト名と先手情報が届いた → ゲーム開始
         playerNames[0] = opponentName;
-        _startGame(playerNames[0], playerNames[1]);
+        _startGame(playerNames[0], playerNames[1], firstTurn);
         _setLoading('btn-join', false);
       }
     });
@@ -178,8 +175,8 @@ const UI = (() => {
   // ─────────────────────────────────────────────────────────
   //  ゲーム開始
   // ─────────────────────────────────────────────────────────
-  function _startGame(nameA, nameB) {
-    gameState = Game.createState(nameA, nameB);
+  function _startGame(nameA, nameB, firstTurn = 0) {
+    gameState = Game.createState(nameA, nameB, firstTurn);
     myIndex   = Network.getMyIndex();
     inputMode = 'move';
 

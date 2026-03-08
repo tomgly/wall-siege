@@ -3,7 +3,7 @@ const Network = (() => {
   let _supabase = null;
   let _channel  = null;
   let _roomCode = "";
-  let _myIndex  = -1;
+  let _myIndex  = -1;   // 0=ホスト(上), 1=ゲスト(下=自分側)
 
   // コールバック
   let _onOpponentJoined = null;  // (opponentName) => void
@@ -63,7 +63,7 @@ const Network = (() => {
 
     // ホストがゲストの参加を承認して返す
     _channel.on('broadcast', { event: 'join_ack' }, ({ payload }) => {
-      if (_onOpponentJoined) _onOpponentJoined(payload.hostName);
+      if (_onOpponentJoined) _onOpponentJoined(payload.hostName, payload.firstTurn);
     });
 
     // ゲームアクション
@@ -95,11 +95,11 @@ const Network = (() => {
   }
 
   // ── ゲスト参加承認 ────────────────────────
-  async function ackJoin(hostName) {
+  async function ackJoin(hostName, firstTurn) {
     await _channel.send({
       type: 'broadcast',
       event: 'join_ack',
-      payload: { hostName }
+      payload: { hostName, firstTurn }
     });
   }
 

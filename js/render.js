@@ -179,24 +179,31 @@ const Render = (() => {
   function drawWalls(state, myIndex) {
     const { CELL, PAD, WALL_T } = CFG;
 
-    for (const { c, r } of state.walls.h) {
+    function wallStyle(owner) {
+      const isMine = owner === myIndex;
+      return isMine ? { color: '#1166cc', shadow: 'rgba(0,150,255,0.7)' } : { color: '#cc1133', shadow: 'rgba(255,60,80,0.7)'  };
+    }
+
+    for (const { c, r, owner } of state.walls.h) {
+      const { color, shadow } = wallStyle(owner);
       const x = PAD + c * CELL;
       const y = PAD + (r + 1) * CELL;
       ctx.save();
-      ctx.shadowColor = 'rgba(0,150,255,0.7)';
+      ctx.shadowColor = shadow;
       ctx.shadowBlur  = 10;
-      ctx.fillStyle   = '#1166cc';
+      ctx.fillStyle   = color;
       ctx.fillRect(x, y - WALL_T / 2, CELL * 2, WALL_T);
       ctx.restore();
     }
 
-    for (const { c, r } of state.walls.v) {
+    for (const { c, r, owner } of state.walls.v) {
+      const { color, shadow } = wallStyle(owner);
       const x = PAD + (c + 1) * CELL;
       const y = PAD + r * CELL;
       ctx.save();
-      ctx.shadowColor = 'rgba(255,60,80,0.7)';
+      ctx.shadowColor = shadow;
       ctx.shadowBlur  = 10;
-      ctx.fillStyle   = '#cc1133';
+      ctx.fillStyle   = color;
       ctx.fillRect(x - WALL_T / 2, y, WALL_T, CELL * 2);
       ctx.restore();
     }
