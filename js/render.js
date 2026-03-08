@@ -184,10 +184,11 @@ const Render = (() => {
   // ── 壁 ─────────────────────────────────────────────────────
   function drawWalls(state, myIndex) {
     const { CELL, PAD, WALL_T } = CFG;
+    const firstTurn = state.firstTurn ?? 0;
 
     function wallStyle(owner) {
-      const isMine = owner === myIndex;
-      return isMine
+      const isSente = owner === firstTurn;
+      return isSente
         ? { color: '#1166cc', shadow: 'rgba(0,150,255,0.7)' }
         : { color: '#cc1133', shadow: 'rgba(255,60,80,0.7)'  };
     }
@@ -219,10 +220,11 @@ const Render = (() => {
 
   // ── コマ ───────────────────────────────────────────────────
   function drawPieces(state, myIndex) {
+    const firstTurn = state.firstTurn ?? 0;
     state.players.forEach((p, idx) => {
-      const isMe = myIndex === -1 ? idx === 0 : idx === myIndex;
-      const color = isMe ? CFG.COLOR_ME : CFG.COLOR_OPP;
-      const glow  = isMe ? CFG.GLOW_ME  : CFG.GLOW_OPP;
+      const isSente = idx === firstTurn;
+      const color = isSente ? CFG.COLOR_ME  : CFG.COLOR_OPP;
+      const glow  = isSente ? CFG.GLOW_ME   : CFG.GLOW_OPP;
       const isTurn = state.turn === idx;
       drawPiece(p.col, p.row, color, glow, isTurn);
     });

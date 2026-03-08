@@ -73,7 +73,7 @@
     </div>
     <div class="btn-row">
       <button class="btn btn-red" id="btn-join" style="flex:1">参加する</button>
-      <button class="btn btn-ghost" id="btn-spectate" style="flex:1;border-color:var(--dim2);color:var(--dim)">観戦する</button>
+      <button class="btn btn-ghost" id="btn-spectate" style="flex:1;border-color:var(--orange);color:var(--orange)">観戦する</button>
     </div>
     <p class="text-dim" style="margin-top:10px;font-size:0.65rem">※ 観戦は名前不要です</p>
   </div>
@@ -90,7 +90,7 @@
       <div>• 相手のゴール列（最上・最下段）に到達したら勝利</div>
       <div>• 1ターンに「移動 OR 壁設置」どちらか1回</div>
       <div>• 相手の経路を完全に塞ぐ壁設置は禁止</div>
-      <div>• <span class="text-cyan">青い壁</span>が自分、<span class="text-red">赤い壁</span>が相手の設置した壁</div>
+      <div>• <span class="text-cyan">青い壁・コマ</span>が先手、<span class="text-red">赤い壁・コマ</span>が後手</div>
       <div>• 先手・後手はランダム決定</div>
       <div>• 相手コマには移動不可（跳び越し・貫通なし）</div>
     </div>
@@ -136,7 +136,7 @@
   <!-- 相手パネル -->
   <div class="players-row">
     <div class="player-panel" id="opp-panel" style="flex:1">
-      <div class="p-label">相手</div>
+      <div class="p-label" id="opp-label">相手</div>
       <div class="p-name" id="opp-name">---</div>
       <div class="p-walls">
         <span>壁</span>
@@ -160,7 +160,7 @@
   <!-- 自分パネル -->
   <div class="players-row">
     <div class="player-panel panel-active" id="my-panel" style="flex:1">
-      <div class="p-label">あなた</div>
+      <div class="p-label" id="my-label">あなた</div>
       <div class="p-name" id="my-name">---</div>
       <div class="p-walls">
         <span>壁</span>
@@ -190,10 +190,8 @@
 
   <!-- ヘルプ -->
   <div class="help-panel">
-    <div class="help-item"><div class="help-dot cyan"></div>自分のコマ</div>
-    <div class="help-item"><div class="help-dot red"></div>相手のコマ</div>
-    <div class="help-item"><div class="help-dot blue"></div>水平壁</div>
-    <div class="help-item"><div class="help-dot dark-red"></div>垂直壁</div>
+    <div class="help-item"><div class="help-dot cyan"></div>先手のコマ・壁</div>
+    <div class="help-item"><div class="help-dot red"></div>後手のコマ・壁</div>
   </div>
 
 </div>
@@ -219,27 +217,44 @@
 
 <!-- 壁ピップの動的更新 -->
 <script>
-const _origUpdatePlayerInfo = UI && UI.updatePlayerInfo;
-
 function updateWallPips(panelId, current, max) {
   const container = document.getElementById(panelId + '-wall-pips');
   if (!container) return;
-  container.innerHTML = '';
-  for (let i = 0; i < max; i++) {
-    const pip = document.createElement('div');
-    pip.className = 'pip' + (i < current ? ' pip-active' : '');
-    container.appendChild(pip);
+  // pip数がmaxと違うときだけ再生成
+  if (container.children.length !== max) {
+    container.innerHTML = '';
+    for (let i = 0; i < max; i++) {
+      const pip = document.createElement('div');
+      container.appendChild(pip);
+    }
   }
+  Array.from(container.children).forEach((pip, i) => {
+    pip.className = 'pip' + (i < current ? ' pip-active' : '');
+  });
 }
 
-// UI初期化後にupdatePlayerInfoをパッチ
 window.addEventListener('DOMContentLoaded', () => {
+  // ゲーム開始時に初期max壁数を記録し、以降はそれを上限として使う
+  let maxWallsMy  = 5;
+  let maxWallsOpp = 5;
+  let prevMy  = -1;
+  let prevOpp = -1;
+
   setInterval(() => {
-    const myWalls  = document.getElementById('my-walls');
-    const oppWalls = document.getElementById('opp-walls');
-    if (myWalls)  updateWallPips('my',  parseInt(myWalls.textContent)  || 0, 5);
-    if (oppWalls) updateWallPips('opp', parseInt(oppWalls.textContent) || 0, 5);
-  }, 200);
+    const myEl  = document.getElementById('my-walls');
+    const oppEl = document.getElementById('opp-walls');
+    if (!myEl || !oppEl) return;
+
+    const myVal  = parseInt(myEl.textContent)  || 0;
+    const oppVal = parseInt(oppEl.textContent) || 0;
+
+    // 初回 or 増加（ゲーム開始時）は最大値を更新
+    if (myVal  > maxWallsMy)  maxWallsMy  = myVal;
+    if (oppVal > maxWallsOpp) maxWallsOpp = oppVal;
+
+    if (myVal  !== prevMy)  { updateWallPips('my',  myVal,  maxWallsMy);  prevMy  = myVal;  }
+    if (oppVal !== prevOpp) { updateWallPips('opp', oppVal, maxWallsOpp); prevOpp = oppVal; }
+  }, 100);
 });
 </script>
 

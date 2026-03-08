@@ -43,19 +43,32 @@ const UI = (() => {
     if (!gameState) return;
 
     const isSpectator = myIndex === -1;
+    const firstTurn   = gameState.firstTurn ?? 0;  // 先手インデックス
 
     const myP  = isSpectator ? gameState.players[1] : gameState.players[myIndex];
     const oppP = isSpectator ? gameState.players[0] : gameState.players[1 - myIndex];
 
-    document.getElementById('my-name').textContent   = myP.name  || (isSpectator ? 'Player 1' : 'あなた');
-    document.getElementById('opp-name').textContent  = oppP.name || (isSpectator ? 'Player 0' : '相手');
+    // 名前
+    document.getElementById('my-name').textContent  = myP.name  || '---';
+    document.getElementById('opp-name').textContent = oppP.name || '---';
+
     document.getElementById('my-walls').textContent  = myP.wallsLeft;
     document.getElementById('opp-walls').textContent = oppP.wallsLeft;
+
+    // パネルラベルを先手/後手で更新
+    if (isSpectator) {
+      // my-panel=p1, opp-panel=p0
+      document.getElementById('my-label').textContent  = 1 === firstTurn ? '先手' : '後手';
+      document.getElementById('opp-label').textContent = 0 === firstTurn ? '先手' : '後手';
+    } else {
+      const iAmFirst = myIndex === firstTurn;
+      document.getElementById('my-label').textContent  = iAmFirst ? '先手（あなた）' : '後手（あなた）';
+      document.getElementById('opp-label').textContent = iAmFirst ? '後手（相手）'   : '先手（相手）';
+    }
 
     // ターンハイライト
     const myPanelActive  = isSpectator ? gameState.turn === 1 : myTurn;
     const oppPanelActive = isSpectator ? gameState.turn === 0 : !myTurn;
-
     document.getElementById('my-panel').classList.toggle('panel-active',  myPanelActive);
     document.getElementById('opp-panel').classList.toggle('panel-active', oppPanelActive);
 
@@ -275,7 +288,7 @@ const UI = (() => {
       const dir = inputMode === 'wall-h' ? 'h' : 'v';
       const hit = Render.xyWallHit(x, y, dir);
       if (hit) {
-        const valid = gameState.players[myIndex].wallsLeft > 0 && Game.canPlaceWall(gameState, hit.c, hit.r, dir);
+        const valid = gameState.players[myIndex].wallsLeft > 0 &&  Game.canPlaceWall(gameState, hit.c, hit.r, dir);
         wallPreview = { ...hit, dir, valid };
       } else {
         wallPreview = null;
@@ -395,16 +408,22 @@ const UI = (() => {
   //  勝利オーバーレイ
   // ─────────────────────────────────────────────────────────
   function _showWinOverlay() {
-    const winner = gameState.winner;
-    const isMyWin = winner === myIndex;
-    const winnerName = gameState.players[winner].name;
+    const winner     = gameState.winner;
+    const winnerName = gameState.players[winner].name || `Player ${winner}`;
+    const isSpectator = myIndex === -1;
+    const isMyWin    = winner === myIndex;
 
-    document.getElementById('result-title').textContent = isMyWin ? '🎉 勝利！' : '😞 敗北…';
-    document.getElementById('result-sub').textContent   = `${winnerName} の勝ち！`;
+    if (isSpectator) {
+      document.getElementById('result-title').textContent = winnerName;
+      document.getElementById('result-sub').textContent   = 'の勝ち！';
+      document.getElementById('result-overlay').style.setProperty('--result-color', winner === 0 ? 'var(--cyan)' : 'var(--red)');
+    } else {
+      document.getElementById('result-title').textContent = isMyWin ? '🎉 勝利！' : '😞 敗北…';
+      document.getElementById('result-sub').textContent   = `${winnerName} の勝ち！`;
+      document.getElementById('result-overlay').style.setProperty('--result-color', isMyWin ? 'var(--cyan)' : 'var(--red)');
+    }
 
-    const overlay = document.getElementById('result-overlay');
-    overlay.classList.add('show');
-    overlay.style.setProperty('--result-color', isMyWin ? 'var(--cyan)' : 'var(--red)');
+    document.getElementById('result-overlay').classList.add('show');
   }
 
   function showResultOverlay(isWin) {
