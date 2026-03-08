@@ -1,9 +1,13 @@
+// ═══════════════════════════════════════════════════════════════
+//  ui.js — 画面管理・マウス入力・ゲームループ
+// ═══════════════════════════════════════════════════════════════
+
 const UI = (() => {
 
   // ── 状態 ──────────────────────────────────────────────────
   let gameState   = null;
   let myIndex     = -1;
-  let inputMode   = 'move';
+  let inputMode   = 'move';   // 'move' | 'wall-h' | 'wall-v'
   let highlights  = [];
   let wallPreview = null;
   let myTurn      = false;
@@ -98,7 +102,7 @@ const UI = (() => {
 
       try {
         myIndex = await Network.joinRoom(code, name);
-        // join_ack を待つ（_bindNetworkEvents で処理）
+        // join_ack を待つ
       } catch (e) {
         console.error(e);
         alert('参加に失敗しました: ' + e.message);
@@ -124,10 +128,15 @@ const UI = (() => {
     // ── リスタート ─────────────────────────────────────────
     document.getElementById('btn-restart').addEventListener('click', () => {
       Network.leave();
-      showScreen('screen-lobby');
-      gameState = null;
-      myIndex = -1;
+      document.getElementById('result-overlay').classList.remove('show');
+      gameState  = null;
+      myIndex    = -1;
+      inputMode  = 'move';
+      highlights = [];
+      wallPreview = null;
+      playerNames = ['', ''];
       document.getElementById('input-room-code').value = '';
+      showScreen('screen-lobby');
     });
   }
 

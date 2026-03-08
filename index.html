@@ -43,7 +43,7 @@
 
   <div class="card lobby-card">
     <div class="card-title">ルームを作成</div>
-    <p class="text-dim mb0" style="margin-bottom:14px">新しいルームを作成してコードを相手に共有します。</p>
+    <p class="text-dim mb0" style="margin-bottom:20px">新しいルームを作成してコードを相手に共有します。</p>
     <button class="btn btn-cyan" id="btn-create">新規ルーム作成</button>
   </div>
 
@@ -53,7 +53,7 @@
     <div class="card-title">ルームに参加</div>
     <div class="form-group">
       <label class="form-label" for="input-room-code">ルームコード（6文字）</label>
-      <input type="text" id="input-room-code" maxlength="6" placeholder="例: AB3K7Z" autocomplete="off"style="text-transform:uppercase;letter-spacing:0.3em;font-size:1.1rem">
+      <input type="text" id="input-room-code" maxlength="6" placeholder="例: AB3K7Z" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.3em;font-size:1.1rem">
     </div>
     <button class="btn btn-red" id="btn-join">ルームに参加</button>
   </div>
@@ -111,9 +111,9 @@
 ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-game">
 
-  <!-- プレイヤー情報 -->
+  <!-- 相手パネル -->
   <div class="players-row">
-    <div class="player-panel" id="opp-panel">
+    <div class="player-panel" id="opp-panel" style="flex:1">
       <div class="p-label">相手</div>
       <div class="p-name" id="opp-name">---</div>
       <div class="p-walls">
@@ -128,8 +128,16 @@
         <span id="opp-walls">5</span>
       </div>
     </div>
+  </div>
 
-    <div class="player-panel panel-active" id="my-panel">
+  <!-- Canvas -->
+  <div class="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+  </div>
+
+  <!-- 自分パネル -->
+  <div class="players-row">
+    <div class="player-panel panel-active" id="my-panel" style="flex:1">
       <div class="p-label">あなた</div>
       <div class="p-name" id="my-name">---</div>
       <div class="p-walls">
@@ -144,11 +152,6 @@
         <span id="my-walls">5</span>
       </div>
     </div>
-  </div>
-
-  <!-- Canvas -->
-  <div class="canvas-wrap">
-    <canvas id="game-canvas"></canvas>
   </div>
 
   <!-- モードボタン -->
@@ -185,7 +188,7 @@
   </div>
 </div>
 
-<!-- ──── JS読み込み ──── -->
+<!-- ── JS読み込み ────────────────────── -->
 <script src="js/config.js"></script>
 <script src="js/game.js"></script>
 <script src="js/render.js"></script>

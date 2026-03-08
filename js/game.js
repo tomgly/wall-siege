@@ -71,7 +71,7 @@ const Game = (() => {
     return result;
   }
 
-  // ── goalRow に到達できるか ────────────────────────────
+  // ── BFS: goalRow に到達できるか ────────────────────────────
   function hasPath(state, startCol, startRow, goalRow) {
     const visited = new Set([wk(startCol, startRow)]);
     const queue   = [{ col: startCol, row: startRow }];
@@ -86,7 +86,7 @@ const Game = (() => {
     return false;
   }
 
-  // ── 合法移動先を取得 ────────
+  // ── 合法移動先を取得 ───────────────
   function legalMoves(state, pIdx) {
     const me    = state.players[pIdx];
     const other = state.players[1 - pIdx];
@@ -96,33 +96,14 @@ const Game = (() => {
       if (!canStep(state, me.col, me.row, dir)) continue;
       const nc = me.col + dc;
       const nr = me.row + dr;
-
-      if (nc === other.col && nr === other.row) {
-        // 相手コマがいる → 跳び越し or 横移動
-        if (canStep(state, nc, nr, dir)) {
-          // 直線跳び越し
-          result.push({ col: nc + dc, row: nr + dr });
-        } else {
-          // 直線が壁で塞がれているとき → 直角方向に移動
-          for (const [d2, [dc2, dr2]] of Object.entries(DIR_DELTA)) {
-            if (d2 === dir) continue; // 同方向スキップ
-            if (dc2 === -dc && dr2 === -dr) continue; // 逆方向スキップ
-            if (canStep(state, nc, nr, d2)) {
-              result.push({ col: nc + dc2, row: nr + dr2 });
-            }
-          }
-        }
-        // 相手のいるマスには着地不可
-      } else {
-        result.push({ col: nc, row: nr });
-      }
+      // 相手コマがいるマスには移動不可
+      if (nc === other.col && nr === other.row) continue;
+      result.push({ col: nc, row: nr });
     }
     return result;
   }
 
   // ── 壁設置の合法判定 ───────────────────────────────────────
-  //  hKey(c, r): c列目・r行目を起点に右隣(c+1)まで横向き2マス
-  //  vKey(c, r): c列目・r行目を起点に下隣(r+1)まで縦向き2マス
   function canPlaceWall(state, c, r, dir) {
     const { COLS, ROWS } = CFG;
     // 盤外チェック（壁は2マス分なので -1）
