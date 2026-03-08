@@ -66,12 +66,16 @@
   <div class="divider">または</div>
 
   <div class="card lobby-card">
-    <div class="card-title">ルームに参加</div>
+    <div class="card-title">ルームに参加 / 観戦</div>
     <div class="form-group">
       <label class="form-label" for="input-room-code">ルームコード（6文字）</label>
       <input type="text" id="input-room-code" maxlength="6" placeholder="例: AB3K7Z" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.3em;font-size:1.1rem">
     </div>
-    <button class="btn btn-red" id="btn-join">ルームに参加</button>
+    <div class="btn-row">
+      <button class="btn btn-red" id="btn-join" style="flex:1">参加する</button>
+      <button class="btn btn-ghost" id="btn-spectate" style="flex:1;border-color:var(--dim2);color:var(--dim)">観戦する</button>
+    </div>
+    <p class="text-dim" style="margin-top:10px;font-size:0.65rem">※ 観戦は名前不要です</p>
   </div>
 
   <div class="card lobby-card" style="margin-bottom:32px">
@@ -86,7 +90,9 @@
       <div>• 相手のゴール列（最上・最下段）に到達したら勝利</div>
       <div>• 1ターンに「移動 OR 壁設置」どちらか1回</div>
       <div>• 相手の経路を完全に塞ぐ壁設置は禁止</div>
-      <div>• 相手コマは跳び越し可（貫通・同マスは不可）</div>
+      <div>• <span class="text-cyan">青い壁</span>が自分、<span class="text-red">赤い壁</span>が相手の設置した壁</div>
+      <div>• 先手・後手はランダム決定</div>
+      <div>• 相手コマには移動不可（跳び越し・貫通なし）</div>
     </div>
   </div>
 
@@ -199,7 +205,7 @@
   <div class="result-box">
     <div class="result-label">Game Result</div>
     <div class="result-title" id="result-title">勝利！</div>
-    <div class="result-sub"   id="result-sub">おめでとうございます</div>
+    <div class="result-sub" id="result-sub">おめでとうございます</div>
     <button class="btn btn-cyan" id="btn-restart">ロビーに戻る</button>
   </div>
 </div>

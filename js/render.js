@@ -91,21 +91,27 @@ const Render = (() => {
     const myGoalRow  = myIndex === 1 ? 0 : ROWS - 1;
     const oppGoalRow = myIndex === 1 ? ROWS - 1 : 0;
 
-    ctx.fillStyle = CFG.GOAL_ME;
+    ctx.fillStyle = myIndex === -1 ? 'rgba(0,229,255,0.04)' : CFG.GOAL_ME;
     ctx.fillRect(PAD, PAD + myGoalRow * CELL, boardW, CELL);
 
-    ctx.fillStyle = CFG.GOAL_OPP;
+    ctx.fillStyle = myIndex === -1 ? 'rgba(255,77,109,0.04)' : CFG.GOAL_OPP;
     ctx.fillRect(PAD, PAD + oppGoalRow * CELL, boardW, CELL);
 
-    // ラベル
     ctx.font = '600 9px "Space Mono", monospace';
     ctx.letterSpacing = '0.1em';
 
-    ctx.fillStyle = 'rgba(0,229,255,0.3)';
-    ctx.fillText('MY GOAL', PAD + 4, PAD + myGoalRow * CELL + 14);
-
-    ctx.fillStyle = 'rgba(255,77,109,0.3)';
-    ctx.fillText("OPP GOAL", PAD + 4, PAD + oppGoalRow * CELL + 14);
+    if (myIndex === -1) {
+      // 観戦: player名で表示
+      ctx.fillStyle = 'rgba(0,229,255,0.25)';
+      ctx.fillText('P0 GOAL', PAD + 4, PAD + (ROWS - 1) * CELL + 14);
+      ctx.fillStyle = 'rgba(255,77,109,0.25)';
+      ctx.fillText('P1 GOAL', PAD + 4, PAD + 14);
+    } else {
+      ctx.fillStyle = 'rgba(0,229,255,0.3)';
+      ctx.fillText('MY GOAL', PAD + 4, PAD + myGoalRow * CELL + 14);
+      ctx.fillStyle = 'rgba(255,77,109,0.3)';
+      ctx.fillText('OPP GOAL', PAD + 4, PAD + oppGoalRow * CELL + 14);
+    }
   }
 
   // ── グリッド ───────────────────────────────────────────────

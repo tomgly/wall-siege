@@ -106,6 +106,25 @@ const UI = (() => {
       }
     });
 
+    // ── 観戦 ────────────────────────────────────────────────
+    document.getElementById('btn-spectate').addEventListener('click', async () => {
+      const code = document.getElementById('input-room-code').value.trim();
+      if (!code) { _flashError('input-room-code', 'ルームコードを入力してください'); return; }
+
+      _setLoading('btn-spectate', true);
+      try {
+        await Network.spectateRoom(code);
+        myIndex = -1;
+        showScreen('screen-waiting');
+        setStatus('観戦を待っています…');
+        // state_sync が届くまで待機
+      } catch (e) {
+        console.error(e);
+        alert('観戦に失敗しました: ' + e.message);
+        _setLoading('btn-spectate', false);
+      }
+    });
+
     // ── ルームコードコピー ───────────────────────────────────
     document.getElementById('btn-copy-code').addEventListener('click', () => {
       const code = document.getElementById('room-code-display').textContent;
@@ -157,6 +176,26 @@ const UI = (() => {
       }
     });
 
+    // 観戦者が参加 → ホストが現在の状態を送信
+    Network.onSpectatorJoined(() => {
+      if (!gameState || myIndex !== 0) return;
+      Network.sendStateSync(gameState, playerNames[0], playerNames[1]);
+    });
+
+    // 観戦者: 状態を受信してゲーム画面へ
+    Network.onSpectateSync((state, nameA, nameB) => {
+      gameState = Game.deepCloneState(state);
+      myIndex   = -1;
+      inputMode = 'move';
+      playerNames[0] = nameA;
+      playerNames[1] = nameB;
+      showScreen('screen-game');
+      updatePlayerInfo();
+      _updateTurnStatus();
+      Render.draw(gameState, myIndex, highlights, null);
+      _setLoading('btn-spectate', false);
+    });
+
     // 相手のアクションを受信
     Network.onGameAction((action) => {
       _applyRemoteAction(action);
@@ -165,8 +204,9 @@ const UI = (() => {
     // 相手が切断
     Network.onOpponentLeft(() => {
       if (!gameState || gameState.over) return;
-      setStatus('⚡ 相手が切断しました');
-      document.getElementById('result-title').textContent = '相手が切断しました';
+      const msg = myIndex === -1 ? '⚡ ゲームが終了しました' : '⚡ 相手が切断しました';
+      setStatus(msg);
+      document.getElementById('result-title').textContent = myIndex === -1 ? 'ゲーム終了' : '相手が切断しました';
       document.getElementById('result-sub').textContent   = '接続が切れました';
       showResultOverlay(false);
     });
@@ -285,12 +325,12 @@ const UI = (() => {
   // ─────────────────────────────────────────────────────────
   function _applyRemoteAction(action) {
     if (!gameState || gameState.over) return;
-    const oppIndex = 1 - myIndex;
+    const actorIndex = myIndex === -1 ? gameState.turn : 1 - myIndex;
 
     if (action.type === 'move') {
-      gameState = Game.applyMove(gameState, oppIndex, action.col, action.row);
+      gameState = Game.applyMove(gameState, actorIndex, action.col, action.row);
     } else if (action.type === 'wall') {
-      gameState = Game.applyWall(gameState, oppIndex, action.c, action.r, action.dir);
+      gameState = Game.applyWall(gameState, actorIndex, action.c, action.r, action.dir);
     }
     _afterAction();
   }

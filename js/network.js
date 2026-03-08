@@ -3,12 +3,13 @@ const Network = (() => {
   let _supabase = null;
   let _channel  = null;
   let _roomCode = "";
-  let _myIndex  = -1;   // 0=ホスト(上), 1=ゲスト(下=自分側)
+  let _myIndex  = -1;   // 0=ホスト(上), 1=ゲスト(下), -1=観戦
 
   // コールバック
-  let _onOpponentJoined = null;  // (opponentName) => void
-  let _onGameAction     = null;  // (action) => void
-  let _onOpponentLeft   = null;  // () => void
+  let _onOpponentJoined  = null;  // (opponentName, firstTurn) => void
+  let _onGameAction      = null;  // (action) => void
+  let _onOpponentLeft    = null;  // () => void
+  let _onSpectateSync    = null;  // (gameState, nameA, nameB) => void
 
   // ── Supabase 初期化 ────────────────────────────────────────
   function init() {
@@ -29,7 +30,6 @@ const Network = (() => {
   async function createRoom(playerName) {
     _roomCode = generateRoomCode();
     _myIndex  = 0;
-
     await _joinChannel(playerName);
     return _roomCode;
   }
@@ -38,9 +38,21 @@ const Network = (() => {
   async function joinRoom(roomCode, playerName) {
     _roomCode = roomCode.toUpperCase().trim();
     _myIndex  = 1;
-
     await _joinChannel(playerName);
     return _myIndex;
+  }
+
+  // ── 観戦参加 ───────────────────────────────
+  async function spectateRoom(roomCode) {
+    _roomCode = roomCode.toUpperCase().trim();
+    _myIndex  = -1;
+    await _joinChannel(null);
+    // 観戦者が入ったことをチャンネルに知らせ、ホストに状態送信を促す
+    await _channel.send({
+      type: 'broadcast',
+      event: 'spectator_join',
+      payload: {}
+    });
   }
 
   // ── チャンネル接続・イベント登録 ──────────────────────────
@@ -58,7 +70,7 @@ const Network = (() => {
 
     // 相手が参加してきた
     _channel.on('broadcast', { event: 'player_join' }, ({ payload }) => {
-      if (_onOpponentJoined) _onOpponentJoined(payload.name);
+      if (_onOpponentJoined) _onOpponentJoined(payload.name, null);
     });
 
     // ホストがゲストの参加を承認して返す
@@ -74,6 +86,21 @@ const Network = (() => {
     // 相手が切断
     _channel.on('broadcast', { event: 'player_leave' }, () => {
       if (_onOpponentLeft) _onOpponentLeft();
+    });
+
+    // 観戦者向けに現在の状態を受信
+    _channel.on('broadcast', { event: 'state_sync' }, ({ payload }) => {
+      if (_myIndex === -1 && _onSpectateSync) {
+        _onSpectateSync(payload.state, payload.nameA, payload.nameB);
+      }
+    });
+
+    // 観戦者が参加してきた → ホストが state_sync を送る
+    _channel.on('broadcast', { event: 'spectator_join' }, () => {
+      if (_myIndex === 0) {
+        // ホスト側: ui.js の _onSpectatorJoined コールバックを呼ぶ
+        if (_onSpectatorJoined) _onSpectatorJoined();
+      }
     });
 
     // ── 接続確立 ─────────────────────────────────────────────
@@ -103,6 +130,16 @@ const Network = (() => {
     });
   }
 
+  // ── 観戦者に現在の状態を送信 ──────────────
+  async function sendStateSync(state, nameA, nameB) {
+    if (!_channel) return;
+    await _channel.send({
+      type: 'broadcast',
+      event: 'state_sync',
+      payload: { state, nameA, nameB }
+    });
+  }
+
   // ── ゲームアクション送信 ──────────────────────────────────
   async function sendAction(action) {
     if (!_channel) return;
@@ -126,9 +163,12 @@ const Network = (() => {
   }
 
   // ── コールバック設定 ──────────────────────────────────────
-  function onOpponentJoined(fn) { _onOpponentJoined = fn; }
-  function onGameAction(fn)     { _onGameAction     = fn; }
-  function onOpponentLeft(fn)   { _onOpponentLeft   = fn; }
+  let _onSpectatorJoined = null;
+  function onOpponentJoined(fn)  { _onOpponentJoined  = fn; }
+  function onGameAction(fn)      { _onGameAction      = fn; }
+  function onOpponentLeft(fn)    { _onOpponentLeft    = fn; }
+  function onSpectateSync(fn)    { _onSpectateSync    = fn; }
+  function onSpectatorJoined(fn) { _onSpectatorJoined = fn; }
 
   // ── ゲッター ──────────────────────────────────────────────
   function getMyIndex()  { return _myIndex;  }
@@ -138,12 +178,16 @@ const Network = (() => {
     init,
     createRoom,
     joinRoom,
+    spectateRoom,
     ackJoin,
+    sendStateSync,
     sendAction,
     leave,
     onOpponentJoined,
     onGameAction,
     onOpponentLeft,
+    onSpectateSync,
+    onSpectatorJoined,
     getMyIndex,
     getRoomCode,
   };
