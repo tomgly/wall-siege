@@ -41,21 +41,28 @@ const UI = (() => {
 
   function updatePlayerInfo() {
     if (!gameState) return;
-    const me  = gameState.players[myIndex];
-    const opp = gameState.players[1 - myIndex];
 
-    document.getElementById('my-name').textContent    = me.name  || 'あなた';
-    document.getElementById('opp-name').textContent   = opp.name || '相手';
-    document.getElementById('my-walls').textContent   = me.wallsLeft;
-    document.getElementById('opp-walls').textContent  = opp.wallsLeft;
+    const isSpectator = myIndex === -1;
 
-    document.getElementById('my-panel').classList.toggle('panel-active',  myTurn);
-    document.getElementById('opp-panel').classList.toggle('panel-active', !myTurn);
+    const myP  = isSpectator ? gameState.players[1] : gameState.players[myIndex];
+    const oppP = isSpectator ? gameState.players[0] : gameState.players[1 - myIndex];
 
-    // 壁ボタン: 壁0なら無効化
-    document.getElementById('btn-mode-wallh').disabled = me.wallsLeft <= 0 || !myTurn;
-    document.getElementById('btn-mode-wallv').disabled = me.wallsLeft <= 0 || !myTurn;
-    document.getElementById('btn-mode-move').disabled  = !myTurn;
+    document.getElementById('my-name').textContent   = myP.name  || (isSpectator ? 'Player 1' : 'あなた');
+    document.getElementById('opp-name').textContent  = oppP.name || (isSpectator ? 'Player 0' : '相手');
+    document.getElementById('my-walls').textContent  = myP.wallsLeft;
+    document.getElementById('opp-walls').textContent = oppP.wallsLeft;
+
+    // ターンハイライト
+    const myPanelActive  = isSpectator ? gameState.turn === 1 : myTurn;
+    const oppPanelActive = isSpectator ? gameState.turn === 0 : !myTurn;
+
+    document.getElementById('my-panel').classList.toggle('panel-active',  myPanelActive);
+    document.getElementById('opp-panel').classList.toggle('panel-active', oppPanelActive);
+
+    // 壁ボタン: 観戦者は常に無効
+    document.getElementById('btn-mode-wallh').disabled = isSpectator || myP.wallsLeft <= 0 || !myTurn;
+    document.getElementById('btn-mode-wallv').disabled = isSpectator || myP.wallsLeft <= 0 || !myTurn;
+    document.getElementById('btn-mode-move').disabled  = isSpectator || !myTurn;
   }
 
   // ─────────────────────────────────────────────────────────
@@ -268,8 +275,7 @@ const UI = (() => {
       const dir = inputMode === 'wall-h' ? 'h' : 'v';
       const hit = Render.xyWallHit(x, y, dir);
       if (hit) {
-        const valid = gameState.players[myIndex].wallsLeft > 0 &&
-                      Game.canPlaceWall(gameState, hit.c, hit.r, dir);
+        const valid = gameState.players[myIndex].wallsLeft > 0 && Game.canPlaceWall(gameState, hit.c, hit.r, dir);
         wallPreview = { ...hit, dir, valid };
       } else {
         wallPreview = null;
@@ -354,15 +360,17 @@ const UI = (() => {
   }
 
   function _refreshHighlights() {
-    myTurn = (gameState.turn === myIndex);
-    highlights = (myTurn && !gameState.over && inputMode === 'move')
-      ? Game.legalMoves(gameState, myIndex)
-      : [];
+    myTurn = myIndex !== -1 && (gameState.turn === myIndex);
+    highlights = (myTurn && !gameState.over && inputMode === 'move') ? Game.legalMoves(gameState, myIndex) : [];
   }
 
   function _updateTurnStatus() {
-    myTurn = (gameState.turn === myIndex);
-    if (myTurn) {
+    myTurn = myIndex !== -1 && (gameState.turn === myIndex);
+    if (myIndex === -1) {
+      const turnName = gameState.players[gameState.turn].name || `Player ${gameState.turn}`;
+      setStatus(`観戦中 — ${turnName} のターン`);
+      canvas.style.cursor = 'default';
+    } else if (myTurn) {
       setStatus('あなたのターン');
       canvas.style.cursor = 'pointer';
     } else {

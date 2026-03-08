@@ -187,7 +187,9 @@ const Render = (() => {
 
     function wallStyle(owner) {
       const isMine = owner === myIndex;
-      return isMine ? { color: '#1166cc', shadow: 'rgba(0,150,255,0.7)' } : { color: '#cc1133', shadow: 'rgba(255,60,80,0.7)'  };
+      return isMine
+        ? { color: '#1166cc', shadow: 'rgba(0,150,255,0.7)' }
+        : { color: '#cc1133', shadow: 'rgba(255,60,80,0.7)'  };
     }
 
     for (const { c, r, owner } of state.walls.h) {
@@ -218,7 +220,7 @@ const Render = (() => {
   // ── コマ ───────────────────────────────────────────────────
   function drawPieces(state, myIndex) {
     state.players.forEach((p, idx) => {
-      const isMe = idx === myIndex;
+      const isMe = myIndex === -1 ? idx === 0 : idx === myIndex;
       const color = isMe ? CFG.COLOR_ME : CFG.COLOR_OPP;
       const glow  = isMe ? CFG.GLOW_ME  : CFG.GLOW_OPP;
       const isTurn = state.turn === idx;
