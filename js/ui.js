@@ -31,6 +31,9 @@ const UI = (() => {
 
   function setStatus(html) {
     document.getElementById('status-text').innerHTML = html;
+    // 待機画面にも反映
+    const ws = document.getElementById('waiting-status-text');
+    if (ws) ws.innerHTML = html;
   }
 
   function setModeBtn(mode) {
@@ -288,7 +291,7 @@ const UI = (() => {
       const dir = inputMode === 'wall-h' ? 'h' : 'v';
       const hit = Render.xyWallHit(x, y, dir);
       if (hit) {
-        const valid = gameState.players[myIndex].wallsLeft > 0 &&  Game.canPlaceWall(gameState, hit.c, hit.r, dir);
+        const valid = gameState.players[myIndex].wallsLeft > 0 && Game.canPlaceWall(gameState, hit.c, hit.r, dir);
         wallPreview = { ...hit, dir, valid };
       } else {
         wallPreview = null;

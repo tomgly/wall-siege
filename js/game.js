@@ -149,9 +149,10 @@ const Game = (() => {
         h: state.walls.h.map(w => ({ ...w })),
         v: state.walls.v.map(w => ({ ...w })),
       },
-      turn   : state.turn,
-      over   : state.over,
-      winner : state.winner,
+      turn      : state.turn,
+      firstTurn : state.firstTurn ?? 0,
+      over      : state.over,
+      winner    : state.winner,
     };
   }
 
