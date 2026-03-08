@@ -1,0 +1,62 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Supabase の Secret を config.js に注入 ──────────────
+      - name: Inject Supabase secrets into config.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          sed -i \
+            -e "s|%%SUPABASE_URL%%|${SUPABASE_URL}|g" \
+            -e "s|%%SUPABASE_KEY%%|${SUPABASE_KEY}|g" \
+            js/config.js
+
+          # 置換が成功したか確認（値は表示しない）
+          if grep -q '%%SUPABASE_URL%%' js/config.js; then
+            echo "❌ SUPABASE_URL の置換に失敗しました。Secrets が設定されているか確認してください。"
+            exit 1
+          fi
+          if grep -q '%%SUPABASE_KEY%%' js/config.js; then
+            echo "❌ SUPABASE_KEY の置換に失敗しました。Secrets が設定されているか確認してください。"
+            exit 1
+          fi
+          echo "✅ Supabase Secrets の注入に成功しました。"
+
+      # ── GitHub Pages にデプロイ ─────────────────────────────
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
