@@ -604,7 +604,14 @@ canvas {
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   color: var(--dim);
-  margin-bottom: 20px;
+  margin-bottom: 8px;
+}
+.wall-confirm-pos {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+  margin-bottom: 16px;
 }
 .wall-confirm-btns {
   display: flex;

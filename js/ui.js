@@ -51,6 +51,7 @@ const UI = (() => {
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    document.body.classList.toggle('no-scroll', id === 'screen-game');
   }
 
   function setStatus(html) {
@@ -381,11 +382,9 @@ const UI = (() => {
         // 短タップ → 移動
         _onClick(touchStart.x, touchStart.y);
       } else if (wallPreview && wallPreview.valid) {
-        // ドラッグ → 確認ダイアログ経由で壁設置
+        // ドラッグ → 確認ダイアログ
         const { c, r, dir } = wallPreview;
-        wallPreview = null;
-        touchStart  = null;
-        Render.draw(gameState, myIndex, highlights, null);
+        touchStart = null;
         _showWallConfirm(c, r, dir);
         return;
       } else if (wallPreview) {
@@ -475,6 +474,9 @@ const UI = (() => {
   // ── タッチ用 壁設置確認ダイアログ ────────────────────────
   function _showWallConfirm(c, r, dir) {
     const overlay = document.getElementById('wall-confirm-overlay');
+    // 位置テキスト: 列・行・向き
+    const dirLabel = dir === 'h' ? '横向き' : '縦向き';
+    document.getElementById('wall-confirm-pos').textContent = `${c + 1}列 ${r + 1}行 — ${dirLabel}`;
     overlay.classList.add('show');
 
     function onYes() {
@@ -488,6 +490,9 @@ const UI = (() => {
     }
     function cleanup() {
       overlay.classList.remove('show');
+      wallPreview = null;
+      touchStart  = null;
+      if (gameState) Render.draw(gameState, myIndex, highlights, null);
       document.getElementById('wall-confirm-yes').removeEventListener('click', onYes);
       document.getElementById('wall-confirm-no').removeEventListener('click', onNo);
     }
