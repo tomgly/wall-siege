@@ -309,18 +309,16 @@ const UI = (() => {
       _onClick(x, y);
     });
 
-    // ── タッチ（ドラッグ方向で壁向きを自動判定） ────────
-    let touchStart = null;  // { x, y, time }
-    const DRAG_THRESHOLD = 18;  // px（canvas座標）壁モード判定距離
+    // ── タッチ（ドラッグでプレビュー、ボタンで確定） ────────
+    let touchStart = null;
+    const DRAG_THRESHOLD = 18;
 
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (!gameState || !myTurn || gameState.over) return;
       const t = e.touches[0];
-      const pos = _canvasPosByClient(t.clientX, t.clientY);
-      touchStart = { ...pos, time: Date.now() };
-      wallPreview = null;
-      Render.draw(gameState, myIndex, highlights, null);
+      touchStart = _canvasPosByClient(t.clientX, t.clientY);
+      Render.draw(gameState, myIndex, highlights, wallPreview);
     }, { passive: false });
 
     canvas.addEventListener('touchmove', (e) => {
@@ -332,70 +330,60 @@ const UI = (() => {
       const dy = cur.y - touchStart.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < DRAG_THRESHOLD) {
-        // まだ移動モード扱い
-        wallPreview = null;
-        Render.draw(gameState, myIndex, highlights, null);
+      if (dist < DRAG_THRESHOLD || gameState.players[myIndex].wallsLeft <= 0) {
+        Render.draw(gameState, myIndex, highlights, wallPreview);
         return;
       }
 
-      // 盤外ならキャンセル表示
-      const { PAD, COLS, ROWS, CELL } = CFG;
-      const inBoard = cur.x >= PAD && cur.x <= PAD + COLS * CELL && cur.y >= PAD && cur.y <= PAD + ROWS * CELL;
-      if (!inBoard) {
-        wallPreview = null;
-        Render.draw(gameState, myIndex, highlights, null);
-        return;
-      }
-
-      // ドラッグ距離が閾値超え → 方向で壁向き決定
       const dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
       const hit = Render.xyWallHit(touchStart.x, touchStart.y, dir);
-      if (hit && gameState.players[myIndex].wallsLeft > 0) {
+      if (hit) {
         const valid = Game.canPlaceWall(gameState, hit.c, hit.r, dir);
         wallPreview = { ...hit, dir, valid };
       } else {
         wallPreview = null;
       }
+      _updateTouchBtns();
       Render.draw(gameState, myIndex, highlights, wallPreview);
     }, { passive: false });
 
     canvas.addEventListener('touchend', (e) => {
       e.preventDefault();
       if (!gameState || !myTurn || gameState.over || !touchStart) return;
-
       const t = e.changedTouches[0];
       const cur = _canvasPosByClient(t.clientX, t.clientY);
       const dx = cur.x - touchStart.x;
       const dy = cur.y - touchStart.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // 盤外で指を離したらキャンセル
-      const { PAD, COLS, ROWS, CELL } = CFG;
-      const inBoard = cur.x >= PAD && cur.x <= PAD + COLS * CELL && cur.y >= PAD && cur.y <= PAD + ROWS * CELL;
-
-      if (dist >= DRAG_THRESHOLD && !inBoard) {
-        // キャンセル
-        setStatus('キャンセルしました');
-        setTimeout(() => _updateTurnStatus(), 1200);
-      } else if (dist < DRAG_THRESHOLD) {
-        // 短タップ → 移動
+      // 短タップ → 移動
+      if (dist < DRAG_THRESHOLD) {
         _onClick(touchStart.x, touchStart.y);
-      } else if (wallPreview && wallPreview.valid) {
-        // ドラッグ → 確認ダイアログ
-        const { c, r, dir } = wallPreview;
-        touchStart = null;
-        _showWallConfirm(c, r, dir);
-        return;
-      } else if (wallPreview) {
-        setStatus('ここには壁を置けません');
-        setTimeout(() => _updateTurnStatus(), 1200);
       }
-
-      touchStart  = null;
-      wallPreview = null;
-      if (gameState) Render.draw(gameState, myIndex, highlights, null);
+      touchStart = null;
     }, { passive: false });
+
+    // ── タッチ用ボタン ────────────────────────────────────
+    document.getElementById('btn-touch-move').addEventListener('click', () => {
+      wallPreview = null;
+      _updateTouchBtns();
+      _refreshHighlights();
+      Render.draw(gameState, myIndex, highlights, null);
+    });
+
+    document.getElementById('btn-touch-place').addEventListener('click', () => {
+      if (!wallPreview || !wallPreview.valid) return;
+      const { c, r, dir } = wallPreview;
+      wallPreview = null;
+      _updateTouchBtns();
+      _doWall(c, r, dir);
+    });
+
+    document.getElementById('btn-touch-cancel').addEventListener('click', () => {
+      wallPreview = null;
+      _updateTouchBtns();
+      Render.draw(gameState, myIndex, highlights, null);
+    });
   }
 
   function _canvasPos(e) {
@@ -471,31 +459,17 @@ const UI = (() => {
     _afterAction();
   }
 
-  // ── タッチ用 壁設置確認ダイアログ ────────────────────────
-  function _showWallConfirm(c, r, dir) {
-    const overlay = document.getElementById('wall-confirm-overlay');
-    overlay.classList.add('show');
-
-    function onYes() {
-      cleanup();
-      _doWall(c, r, dir);
-    }
-    function onNo() {
-      cleanup();
-      setStatus('キャンセルしました');
-      setTimeout(() => _updateTurnStatus(), 1200);
-    }
-    function cleanup() {
-      overlay.classList.remove('show');
-      wallPreview = null;
-      touchStart  = null;
-      if (gameState) Render.draw(gameState, myIndex, highlights, null);
-      document.getElementById('wall-confirm-yes').removeEventListener('click', onYes);
-      document.getElementById('wall-confirm-no').removeEventListener('click', onNo);
-    }
-
-    document.getElementById('wall-confirm-yes').addEventListener('click', onYes);
-    document.getElementById('wall-confirm-no').addEventListener('click', onNo);
+  // ── タッチ用ボタン状態更新 ────────────────────────────────
+  function _updateTouchBtns() {
+    const hasPreview = !!wallPreview;
+    const canPlace   = hasPreview && wallPreview.valid;
+    const placeBtn   = document.getElementById('btn-touch-place');
+    const cancelBtn  = document.getElementById('btn-touch-cancel');
+    if (!placeBtn) return;
+    placeBtn.disabled  = !canPlace;
+    cancelBtn.disabled = !hasPreview;
+    placeBtn.classList.toggle('preview-ready',  canPlace);
+    cancelBtn.classList.toggle('preview-ready', hasPreview);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -534,6 +508,7 @@ const UI = (() => {
   function _refreshHighlights() {
     myTurn = myIndex !== -1 && (gameState.turn === myIndex);
     highlights = (myTurn && !gameState.over && inputMode === 'move') ? Game.legalMoves(gameState, myIndex) : [];
+    if (!myTurn) { wallPreview = null; _updateTouchBtns(); }
   }
 
   function _updateTurnStatus() {

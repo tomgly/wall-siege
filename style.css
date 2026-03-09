@@ -447,7 +447,6 @@ input::placeholder { color: var(--dim2); }
   transition: background 0.2s;
 }
 
-
 /* Canvasエリア */
 .canvas-wrap {
   width: 100%;
@@ -464,12 +463,11 @@ canvas {
   image-rendering: pixelated;
 }
 
-/* コントロールバー */
+/* コントロールバー（マウス用） */
 .control-bar {
   width: 100%;
   display: flex;
   gap: 6px;
-  padding: 8px 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-top: none;
@@ -506,9 +504,64 @@ canvas {
   cursor: not-allowed;
 }
 
-/* タッチデバイスではモードボタン不要 */
+/* マウスではタッチバー非表示、タッチではマウスバー非表示 */
+@media (pointer: fine) {
+  .touch-control-bar { display: none; }
+}
 @media (pointer: coarse) {
   .control-bar { display: none; }
+}
+
+/* タッチ用コントロールバー */
+.touch-control-bar {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  padding: 8px 10px;
+}
+
+.touch-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.18s;
+  flex: 1;
+  text-transform: uppercase;
+}
+
+.touch-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 壁設置ボタン: プレビューあり時にシアンで強調 */
+#btn-touch-place {
+  border-color: var(--border2);
+  color: var(--dim);
+}
+#btn-touch-place.preview-ready {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0,229,255,0.08);
+  box-shadow: var(--cyan-glow);
+}
+
+/* キャンセルボタン */
+#btn-touch-cancel {
+  border-color: var(--border2);
+  color: var(--dim);
+}
+#btn-touch-cancel.preview-ready {
+  border-color: var(--red);
+  color: var(--red);
 }
 
 /* ステータスバー */
@@ -576,52 +629,6 @@ canvas {
 }
 
 #result-overlay.show { display: flex; }
-
-/* ── 壁設置確認ダイアログ ─────────────────────────────── */
-#wall-confirm-overlay {
-  position: fixed;
-  inset: 0;
-  background: transparent;
-  display: none;
-  align-items: flex-start;
-  justify-content: center;
-  z-index: 150;
-  pointer-events: none;
-}
-#wall-confirm-overlay.show { display: flex; }
-
-.wall-confirm-box {
-  pointer-events: all;
-  background: rgba(8,8,16,0.92);
-  border: 1px solid var(--border2);
-  padding: 14px 20px;
-  text-align: center;
-  width: 90%;
-  max-width: 320px;
-  margin-top: 12px;
-  position: relative;
-  overflow: hidden;
-}
-.wall-confirm-box::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--cyan);
-  box-shadow: 0 0 12px var(--cyan);
-}
-.wall-confirm-label {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.2em;
-  color: var(--dim);
-  margin-bottom: 10px;
-}
-.wall-confirm-btns {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
 
 .result-box {
   background: var(--surface);

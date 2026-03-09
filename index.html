@@ -178,11 +178,18 @@
     </div>
   </div>
 
-  <!-- モードボタン -->
+  <!-- モードボタン（マウス用） -->
   <div class="control-bar">
     <button class="mode-btn mode-active" id="btn-mode-move">▶ 移動</button>
     <button class="mode-btn" id="btn-mode-wallh">━ 水平壁</button>
     <button class="mode-btn" id="btn-mode-wallv">┃ 垂直壁</button>
+  </div>
+
+  <!-- タッチ用コントロールバー -->
+  <div class="touch-control-bar">
+    <button class="touch-btn" id="btn-touch-move">▶ 移動</button>
+    <button class="touch-btn" id="btn-touch-place" disabled>━┃ 壁設置</button>
+    <button class="touch-btn" id="btn-touch-cancel" disabled>✕ キャンセル</button>
   </div>
 
   <!-- ステータス -->
@@ -207,17 +214,6 @@
     <div class="result-title" id="result-title">勝利！</div>
     <div class="result-sub" id="result-sub">おめでとうございます</div>
     <button class="btn btn-cyan" id="btn-restart">ロビーに戻る</button>
-  </div>
-</div>
-
-<!-- ── 壁設置確認ダイアログ ────────────────────────── -->
-<div id="wall-confirm-overlay">
-  <div class="wall-confirm-box">
-    <div class="wall-confirm-label">ここに壁を置きますか？</div>
-    <div class="wall-confirm-btns">
-      <button class="btn btn-cyan  btn-sm" id="wall-confirm-yes">はい</button>
-      <button class="btn btn-ghost btn-sm" id="wall-confirm-no">キャンセル</button>
-    </div>
   </div>
 </div>
 
