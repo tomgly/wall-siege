@@ -366,6 +366,7 @@ const UI = (() => {
     // ── タッチ用ボタン ────────────────────────────────────
     document.getElementById('btn-touch-move').addEventListener('click', () => {
       wallPreview = null;
+      inputMode = 'move';
       _updateTouchBtns();
       _refreshHighlights();
       Render.draw(gameState, myIndex, highlights, null);
@@ -381,7 +382,9 @@ const UI = (() => {
 
     document.getElementById('btn-touch-cancel').addEventListener('click', () => {
       wallPreview = null;
+      inputMode = 'move';
       _updateTouchBtns();
+      _refreshHighlights();
       Render.draw(gameState, myIndex, highlights, null);
     });
   }
@@ -472,6 +475,8 @@ const UI = (() => {
     cancelBtn.disabled = !hasPreview;
     placeBtn.classList.toggle('preview-ready',  canPlace);
     cancelBtn.classList.toggle('preview-ready', hasPreview);
+    if (!canPlace) placeBtn.classList.remove('preview-ready');
+    if (!hasPreview) cancelBtn.classList.remove('preview-ready');
   }
 
   // ─────────────────────────────────────────────────────────

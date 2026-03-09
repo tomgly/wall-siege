@@ -16,7 +16,9 @@
   --font-jp:   'Zen Kaku Gothic New', sans-serif;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ダブルタップズーム無効化 */
+* { touch-action: manipulation; }
+canvas { touch-action: none; }
 
 body {
   background: var(--bg);
