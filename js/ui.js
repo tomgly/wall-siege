@@ -456,6 +456,8 @@ const UI = (() => {
     Network.sendAction({ type: 'wall', c, r, dir });
     inputMode = 'move';
     setModeBtn('move');
+    wallPreview = null;
+    _updateTouchBtns();
     _afterAction();
   }
 
