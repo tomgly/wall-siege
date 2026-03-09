@@ -210,14 +210,12 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     壁設置確認ダイアログ
-══════════════════════════════════════════════ -->
-<div id="wall-confirm-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border2);padding:24px 28px;text-align:center;min-width:220px">
-    <div style="font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.15em;color:var(--dim);margin-bottom:12px">壁を置きますか？</div>
-    <div style="display:flex;gap:10px;justify-content:center">
-      <button class="btn btn-cyan btn-sm" id="wall-confirm-yes">はい</button>
+<!-- ── 壁設置確認ダイアログ ────────────────────────── -->
+<div id="wall-confirm-overlay">
+  <div class="wall-confirm-box">
+    <div class="wall-confirm-label">壁を置きますか？</div>
+    <div class="wall-confirm-btns">
+      <button class="btn btn-cyan  btn-sm" id="wall-confirm-yes">はい</button>
       <button class="btn btn-ghost btn-sm" id="wall-confirm-no">キャンセル</button>
     </div>
   </div>
@@ -249,26 +247,24 @@ function updateWallPips(panelId, current, max) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // ゲーム開始時に初期max壁数を記録し、以降はそれを上限として使う
-  let maxWallsMy  = 5;
-  let maxWallsOpp = 5;
-  let prevMy  = -1;
-  let prevOpp = -1;
+  let maxWallsSente = 5;
+  let maxWallsGote  = 5;
+  let prevSente = -1;
+  let prevGote  = -1;
 
   setInterval(() => {
-    const myEl  = document.getElementById('my-walls');
-    const oppEl = document.getElementById('opp-walls');
-    if (!myEl || !oppEl) return;
+    const senteEl = document.getElementById('sente-walls');
+    const goteEl  = document.getElementById('gote-walls');
+    if (!senteEl || !goteEl) return;
 
-    const myVal  = parseInt(myEl.textContent)  || 0;
-    const oppVal = parseInt(oppEl.textContent) || 0;
+    const senteVal = parseInt(senteEl.textContent) || 0;
+    const goteVal  = parseInt(goteEl.textContent)  || 0;
 
-    // 初回 or 増加（ゲーム開始時）は最大値を更新
-    if (myVal  > maxWallsMy)  maxWallsMy  = myVal;
-    if (oppVal > maxWallsOpp) maxWallsOpp = oppVal;
+    if (senteVal > maxWallsSente) maxWallsSente = senteVal;
+    if (goteVal  > maxWallsGote)  maxWallsGote  = goteVal;
 
-    if (myVal  !== prevMy)  { updateWallPips('my',  myVal,  maxWallsMy);  prevMy  = myVal;  }
-    if (oppVal !== prevOpp) { updateWallPips('opp', oppVal, maxWallsOpp); prevOpp = oppVal; }
+    if (senteVal !== prevSente) { updateWallPips('sente', senteVal, maxWallsSente); prevSente = senteVal; }
+    if (goteVal  !== prevGote)  { updateWallPips('gote',  goteVal,  maxWallsGote);  prevGote  = goteVal;  }
   }, 100);
 });
 </script>

@@ -357,6 +357,8 @@ input::placeholder { color: var(--dim2); }
   padding-top: 0;
   padding-bottom: 24px;
   gap: 0;
+  overflow: hidden;
+  touch-action: none;
 }
 
 /* プレイヤーパネル行 */
