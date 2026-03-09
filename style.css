@@ -260,10 +260,8 @@ input::placeholder { color: var(--dim2); }
 }
 
 /* ═══ ロビー画面 ══════════════════════════════════════════ */
-
-/* ピップ色: 上パネル(先手)=青、下パネル(後手)=赤 で固定 */
-#opp-panel .pip.pip-active { background: var(--cyan); }
-#my-panel  .pip.pip-active { background: var(--red); }
+#sente-panel .pip.pip-active { background: var(--cyan); }
+#gote-panel  .pip.pip-active { background: var(--red); }
 
 #screen-lobby {
   padding-top: 0;
@@ -387,17 +385,17 @@ input::placeholder { color: var(--dim2); }
   transition: opacity 0.25s;
 }
 
-#my-panel::after  { background: var(--cyan); }
-#opp-panel::after { background: var(--red); }
+#sente-panel::after { background: var(--cyan); }
+#gote-panel::after  { background: var(--red); }
 
 .player-panel.panel-active {
   border-color: var(--border2);
 }
-#my-panel.panel-active  {
+#sente-panel.panel-active {
   border-color: var(--cyan);
   box-shadow: 0 0 16px rgba(0,229,255,0.2);
 }
-#opp-panel.panel-active {
+#gote-panel.panel-active {
   border-color: var(--red);
   box-shadow: 0 0 16px rgba(255,77,109,0.2);
 }
@@ -567,6 +565,50 @@ canvas {
 }
 
 #result-overlay.show { display: flex; }
+
+/* ── 壁設置確認ダイアログ ─────────────────────────────── */
+#wall-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  backdrop-filter: blur(4px);
+}
+#wall-confirm-overlay.show { display: flex; }
+
+.wall-confirm-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  padding: 28px 32px;
+  text-align: center;
+  width: 80%;
+  max-width: 280px;
+  position: relative;
+  overflow: hidden;
+}
+.wall-confirm-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan);
+}
+.wall-confirm-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  margin-bottom: 20px;
+}
+.wall-confirm-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
 
 .result-box {
   background: var(--surface);

@@ -143,7 +143,7 @@ const UI = (() => {
 
       try {
         myIndex = await Network.joinRoom(code, name);
-        // join_ack を待つ
+        // join_ack を待つ（_bindNetworkEvents で処理）
       } catch (e) {
         console.error(e);
         alert('参加に失敗しました: ' + e.message);
@@ -163,7 +163,7 @@ const UI = (() => {
         myIndex = -1;
         showScreen('screen-waiting');
         setStatus('観戦を待っています…');
-        // state_sync が届くまで待機
+        // state_sync が届くまで待機（_bindNetworkEvents で処理）
       } catch (e) {
         console.error(e);
         alert('観戦に失敗しました: ' + e.message);
@@ -381,8 +381,13 @@ const UI = (() => {
         // 短タップ → 移動
         _onClick(touchStart.x, touchStart.y);
       } else if (wallPreview && wallPreview.valid) {
-        // ドラッグ → 壁設置
-        _doWall(wallPreview.c, wallPreview.r, wallPreview.dir);
+        // ドラッグ → 確認ダイアログ経由で壁設置
+        const { c, r, dir } = wallPreview;
+        wallPreview = null;
+        touchStart  = null;
+        Render.draw(gameState, myIndex, highlights, null);
+        _showWallConfirm(c, r, dir);
+        return;
       } else if (wallPreview) {
         setStatus('ここには壁を置けません');
         setTimeout(() => _updateTurnStatus(), 1200);
@@ -465,6 +470,30 @@ const UI = (() => {
     inputMode = 'move';
     setModeBtn('move');
     _afterAction();
+  }
+
+  // ── タッチ用 壁設置確認ダイアログ ────────────────────────
+  function _showWallConfirm(c, r, dir) {
+    const overlay = document.getElementById('wall-confirm-overlay');
+    overlay.classList.add('show');
+
+    function onYes() {
+      cleanup();
+      _doWall(c, r, dir);
+    }
+    function onNo() {
+      cleanup();
+      setStatus('キャンセルしました');
+      setTimeout(() => _updateTurnStatus(), 1200);
+    }
+    function cleanup() {
+      overlay.classList.remove('show');
+      document.getElementById('wall-confirm-yes').removeEventListener('click', onYes);
+      document.getElementById('wall-confirm-no').removeEventListener('click', onNo);
+    }
+
+    document.getElementById('wall-confirm-yes').addEventListener('click', onYes);
+    document.getElementById('wall-confirm-no').addEventListener('click', onNo);
   }
 
   // ─────────────────────────────────────────────────────────

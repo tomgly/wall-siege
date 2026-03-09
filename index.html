@@ -210,6 +210,19 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════
+     壁設置確認ダイアログ
+══════════════════════════════════════════════ -->
+<div id="wall-confirm-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border2);padding:24px 28px;text-align:center;min-width:220px">
+    <div style="font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.15em;color:var(--dim);margin-bottom:12px">壁を置きますか？</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-cyan btn-sm" id="wall-confirm-yes">はい</button>
+      <button class="btn btn-ghost btn-sm" id="wall-confirm-no">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── JS読み込み ────────────────────── -->
 <script src="js/config.js"></script>
 <script src="js/game.js"></script>
