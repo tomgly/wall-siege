@@ -21,45 +21,37 @@ const UI = (() => {
     _applyUrlParams();
   }
 
-  // ── URLパラメータを読んで自動入力・自動接続 ──────────────
+  // ── URLパラメータを読んで自動接続 ────────────
   function _applyUrlParams() {
     const params = new URLSearchParams(location.search);
     const code   = params.get('code');
-    const user   = params.get('user'); // '0'=先手/ホスト '1'=後手/ゲスト '-1'=観戦
+    const user   = params.get('user');
 
     if (code) {
       document.getElementById('input-room-code').value = code.toUpperCase();
     }
 
-    if (code && user !== null) {
-      const u = parseInt(user, 10);
-      if (u === -1) {
-        // 観戦として自動接続
-        setTimeout(async () => {
-          try {
-            await Network.spectateRoom(code);
-            myIndex = -1;
-            showScreen('screen-waiting');
-            setStatus('観戦を待っています…');
-          } catch (e) { showScreen('screen-lobby'); }
-        }, 300);
-        return;
-      } else if (u === 1) {
-        // ゲストとして待機
-        showScreen('screen-lobby');
-        document.getElementById('input-name').focus();
-        return;
-      }
+    // user=-1 のときだけ観戦として自動接続
+    if (code && user === '-1') {
+      setTimeout(async () => {
+        try {
+          await Network.spectateRoom(code);
+          myIndex = -1;
+          showScreen('screen-waiting');
+          setStatus('観戦を待っています…');
+        } catch (e) { showScreen('screen-lobby'); }
+      }, 300);
+      return;
     }
 
     showScreen('screen-lobby');
   }
 
   // ── URLを更新 ───────────────────────────
-  function _setUrl(code, user) {
+  function _setUrl(code, spectate = false) {
     const params = new URLSearchParams();
     if (code) params.set('code', code);
-    if (user !== undefined) params.set('user', user);
+    if (spectate) params.set('user', '-1');
     history.replaceState(null, '', '?' + params.toString());
   }
 
@@ -94,6 +86,8 @@ const UI = (() => {
     const isSpectator = myIndex === -1;
     const firstTurn   = gameState.firstTurn ?? 0;  // 先手インデックス
 
+    // 観戦: opp-panel=p0(上・シアン), my-panel=p1(下・赤) の固定割り当て
+    // 対戦: my-panel=自分, opp-panel=相手
     const myP  = isSpectator ? gameState.players[1] : gameState.players[myIndex];
     const oppP = isSpectator ? gameState.players[0] : gameState.players[1 - myIndex];
 
@@ -143,7 +137,7 @@ const UI = (() => {
       try {
         const code = await Network.createRoom(name);
         myIndex = 0;
-        _setUrl(code, 0);
+        _setUrl(code);
         document.getElementById('room-code-display').textContent = code;
         showScreen('screen-waiting');
         setStatus('相手の参加を待っています…');
@@ -164,7 +158,7 @@ const UI = (() => {
 
       playerNames[1] = name;
       _setLoading('btn-join', true);
-      _setUrl(code, 1);
+      _setUrl(code);
 
       try {
         myIndex = await Network.joinRoom(code, name);
@@ -182,7 +176,7 @@ const UI = (() => {
       if (!code) { _flashError('input-room-code', 'ルームコードを入力してください'); return; }
 
       _setLoading('btn-spectate', true);
-      _setUrl(code, -1);
+      _setUrl(code, true);
       try {
         await Network.spectateRoom(code);
         myIndex = -1;
@@ -352,6 +346,15 @@ const UI = (() => {
         return;
       }
 
+      // 盤外ならキャンセル表示
+      const { PAD, COLS, ROWS, CELL } = CFG;
+      const inBoard = cur.x >= PAD && cur.x <= PAD + COLS * CELL && cur.y >= PAD && cur.y <= PAD + ROWS * CELL;
+      if (!inBoard) {
+        wallPreview = null;
+        Render.draw(gameState, myIndex, highlights, null);
+        return;
+      }
+
       // ドラッグ距離が閾値超え → 方向で壁向き決定
       const dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
       const hit = Render.xyWallHit(touchStart.x, touchStart.y, dir);
@@ -374,7 +377,15 @@ const UI = (() => {
       const dy = cur.y - touchStart.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < DRAG_THRESHOLD) {
+      // 盤外で指を離したらキャンセル
+      const { PAD, COLS, ROWS, CELL } = CFG;
+      const inBoard = cur.x >= PAD && cur.x <= PAD + COLS * CELL && cur.y >= PAD && cur.y <= PAD + ROWS * CELL;
+
+      if (dist >= DRAG_THRESHOLD && !inBoard) {
+        // キャンセル
+        setStatus('キャンセルしました');
+        setTimeout(() => _updateTurnStatus(), 1200);
+      } else if (dist < DRAG_THRESHOLD) {
         // 短タップ → 移動
         _onClick(touchStart.x, touchStart.y);
       } else if (wallPreview && wallPreview.valid) {
@@ -382,6 +393,7 @@ const UI = (() => {
         _doWall(wallPreview.c, wallPreview.r, wallPreview.dir);
       } else if (wallPreview) {
         setStatus('ここには壁を置けません');
+        setTimeout(() => _updateTurnStatus(), 1200);
       }
 
       touchStart  = null;
@@ -412,7 +424,7 @@ const UI = (() => {
       const dir = inputMode === 'wall-h' ? 'h' : 'v';
       const hit = Render.xyWallHit(x, y, dir);
       if (hit) {
-        const valid = gameState.players[myIndex].wallsLeft > 0 &&  Game.canPlaceWall(gameState, hit.c, hit.r, dir);
+        const valid = gameState.players[myIndex].wallsLeft > 0 && Game.canPlaceWall(gameState, hit.c, hit.r, dir);
         wallPreview = { ...hit, dir, valid };
       } else {
         wallPreview = null;
