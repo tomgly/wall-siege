@@ -16,6 +16,8 @@
   --font-jp:   'Zen Kaku Gothic New', sans-serif;
 }
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 /* ダブルタップズーム無効化 */
 * { touch-action: manipulation; }
 canvas { touch-action: none; }
@@ -79,6 +81,7 @@ body::after {
 .title-bar {
   width: 100%;
   padding: 14px 20px;
+  padding-top: calc(14px + env(safe-area-inset-top));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -507,11 +510,11 @@ canvas {
 }
 
 /* マウスではタッチバー非表示、タッチではマウスバー非表示 */
-@media (pointer: fine) {
-  .touch-control-bar { display: none; }
-}
+.touch-control-bar { display: none; }
+
 @media (pointer: coarse) {
   .control-bar { display: none; }
+  .touch-control-bar { display: flex; }
 }
 
 /* タッチ用コントロールバー */
