@@ -474,9 +474,6 @@ const UI = (() => {
   // ── タッチ用 壁設置確認ダイアログ ────────────────────────
   function _showWallConfirm(c, r, dir) {
     const overlay = document.getElementById('wall-confirm-overlay');
-    // 位置テキスト: 列・行・向き
-    const dirLabel = dir === 'h' ? '横向き' : '縦向き';
-    document.getElementById('wall-confirm-pos').textContent = `${c + 1}列 ${r + 1}行 — ${dirLabel}`;
     overlay.classList.add('show');
 
     function onYes() {

@@ -506,6 +506,11 @@ canvas {
   cursor: not-allowed;
 }
 
+/* タッチデバイスではモードボタン不要 */
+@media (pointer: coarse) {
+  .control-bar { display: none; }
+}
+
 /* ステータスバー */
 .status-bar {
   width: 100%;
@@ -576,22 +581,24 @@ canvas {
 #wall-confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: transparent;
   display: none;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 150;
-  backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 #wall-confirm-overlay.show { display: flex; }
 
 .wall-confirm-box {
-  background: var(--surface);
+  pointer-events: all;
+  background: rgba(8,8,16,0.92);
   border: 1px solid var(--border2);
-  padding: 28px 32px;
+  padding: 14px 20px;
   text-align: center;
-  width: 80%;
-  max-width: 280px;
+  width: 90%;
+  max-width: 320px;
+  margin-top: 12px;
   position: relative;
   overflow: hidden;
 }
@@ -605,17 +612,10 @@ canvas {
 }
 .wall-confirm-label {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   letter-spacing: 0.2em;
   color: var(--dim);
-  margin-bottom: 8px;
-}
-.wall-confirm-pos {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
-  color: var(--cyan);
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 .wall-confirm-btns {
   display: flex;
