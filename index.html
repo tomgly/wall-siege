@@ -73,7 +73,7 @@
     </div>
     <div class="btn-row">
       <button class="btn btn-red" id="btn-join" style="flex:1">参加する</button>
-      <button class="btn btn-ghost" id="btn-spectate" style="flex:1;border-color:var(--orange);color:var(--orange)">観戦する</button>
+      <button class="btn btn-yel" id="btn-spectate" style="flex:1">観戦する</button>
     </div>
     <p class="text-dim" style="margin-top:10px;font-size:0.65rem">※ 観戦は名前不要です</p>
   </div>
@@ -109,7 +109,10 @@
     <div class="card-title" style="justify-content:center">ルームコード</div>
     <div class="code-display" id="room-code-display">------</div>
     <p class="text-dim mt8">このコードを相手に共有してください</p>
-    <button class="btn btn-ghost btn-sm mt12" id="btn-copy-code" style="margin:12px auto 0;display:block">コードをコピー</button>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
+      <button class="btn btn-ghost btn-sm" id="btn-copy-code">コードをコピー</button>
+      <button class="btn btn-ghost btn-sm" id="btn-copy-link">リンクをコピー</button>
+    </div>
   </div>
 
   <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
@@ -132,10 +135,10 @@
 ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-game">
 
-  <!-- 相手パネル -->
+  <!-- 先手パネル -->
   <div class="players-row">
     <div class="player-panel" id="opp-panel" style="flex:1">
-      <div class="p-label" id="opp-label">相手</div>
+      <div class="p-label" id="opp-label">先手</div>
       <div class="p-name" id="opp-name">---</div>
       <div class="p-walls">
         <span>壁</span>
@@ -156,10 +159,10 @@
     <canvas id="game-canvas"></canvas>
   </div>
 
-  <!-- 自分パネル -->
+  <!-- 後手パネル -->
   <div class="players-row">
     <div class="player-panel panel-active" id="my-panel" style="flex:1">
-      <div class="p-label" id="my-label">あなた</div>
+      <div class="p-label" id="my-label">後手</div>
       <div class="p-name" id="my-name">---</div>
       <div class="p-walls">
         <span>壁</span>

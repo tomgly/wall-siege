@@ -15,6 +15,9 @@ const UI = (() => {
   function init() {
     Network.init();
     Render.init(canvas);
+    // 名前キャッシュを復元
+    const savedName = localStorage.getItem('ws_player_name');
+    if (savedName) document.getElementById('input-name').value = savedName;
     _bindLobbyEvents();
     _bindCanvasEvents();
     _bindNetworkEvents();
@@ -83,39 +86,27 @@ const UI = (() => {
   function updatePlayerInfo() {
     if (!gameState) return;
 
+    // 上パネル(opp-panel) = players[0] = 先手（固定・青）
+    // 下パネル(my-panel)  = players[1] = 後手（固定・赤）
+    const p0 = gameState.players[0];
+    const p1 = gameState.players[1];
+
+    document.getElementById('opp-name').textContent = p0.name || '---';
+    document.getElementById('my-name').textContent  = p1.name || '---';
+    document.getElementById('opp-walls').textContent = p0.wallsLeft;
+    document.getElementById('my-walls').textContent  = p1.wallsLeft;
+
+    // ラベル: 先手/後手 固定
+    document.getElementById('opp-label').textContent = '先手';
+    document.getElementById('my-label').textContent  = '後手';
+
+    // ターンハイライト: turn===0 なら上、turn===1 なら下がアクティブ
+    document.getElementById('opp-panel').classList.toggle('panel-active', gameState.turn === 0);
+    document.getElementById('my-panel').classList.toggle('panel-active',  gameState.turn === 1);
+
+    // 壁ボタン: 観戦・自分のターン以外は無効
     const isSpectator = myIndex === -1;
-    const firstTurn   = gameState.firstTurn ?? 0;  // 先手インデックス
-
-    // 観戦: opp-panel=p0(上・シアン), my-panel=p1(下・赤) の固定割り当て
-    // 対戦: my-panel=自分, opp-panel=相手
-    const myP  = isSpectator ? gameState.players[1] : gameState.players[myIndex];
-    const oppP = isSpectator ? gameState.players[0] : gameState.players[1 - myIndex];
-
-    // 名前
-    document.getElementById('my-name').textContent  = myP.name  || '---';
-    document.getElementById('opp-name').textContent = oppP.name || '---';
-
-    document.getElementById('my-walls').textContent  = myP.wallsLeft;
-    document.getElementById('opp-walls').textContent = oppP.wallsLeft;
-
-    // パネルラベルを先手/後手で更新
-    if (isSpectator) {
-      // my-panel=p1, opp-panel=p0
-      document.getElementById('my-label').textContent  = 1 === firstTurn ? '先手（下）' : '後手（下）';
-      document.getElementById('opp-label').textContent = 0 === firstTurn ? '先手（上）' : '後手（上）';
-    } else {
-      const iAmFirst = myIndex === firstTurn;
-      document.getElementById('my-label').textContent  = iAmFirst ? '先手（あなた）' : '後手（あなた）';
-      document.getElementById('opp-label').textContent = iAmFirst ? '後手（相手）'   : '先手（相手）';
-    }
-
-    // ターンハイライト
-    const myPanelActive  = isSpectator ? gameState.turn === 1 : myTurn;
-    const oppPanelActive = isSpectator ? gameState.turn === 0 : !myTurn;
-    document.getElementById('my-panel').classList.toggle('panel-active',  myPanelActive);
-    document.getElementById('opp-panel').classList.toggle('panel-active', oppPanelActive);
-
-    // 壁ボタン: 観戦者は常に無効
+    const myP = myIndex === -1 ? null : gameState.players[myIndex];
     document.getElementById('btn-mode-wallh').disabled = isSpectator || myP.wallsLeft <= 0 || !myTurn;
     document.getElementById('btn-mode-wallv').disabled = isSpectator || myP.wallsLeft <= 0 || !myTurn;
     document.getElementById('btn-mode-move').disabled  = isSpectator || !myTurn;
@@ -132,6 +123,7 @@ const UI = (() => {
       if (!name) { _flashError('input-name', '名前を入力してください'); return; }
 
       playerNames[0] = name;
+      localStorage.setItem('ws_player_name', name);
       _setLoading('btn-create', true);
 
       try {
@@ -157,6 +149,7 @@ const UI = (() => {
       if (!code) { _flashError('input-room-code', 'ルームコードを入力してください'); return; }
 
       playerNames[1] = name;
+      localStorage.setItem('ws_player_name', name);
       _setLoading('btn-join', true);
       _setUrl(code);
 
@@ -197,6 +190,17 @@ const UI = (() => {
         const btn = document.getElementById('btn-copy-code');
         btn.textContent = 'コピーしました！';
         setTimeout(() => { btn.textContent = 'コードをコピー'; }, 2000);
+      });
+    });
+
+    // ── リンクコピー ────────────────────────────────────────
+    document.getElementById('btn-copy-link').addEventListener('click', () => {
+      const code = document.getElementById('room-code-display').textContent;
+      const url  = `${location.origin}${location.pathname}?code=${code}&user=-1`;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('btn-copy-link');
+        btn.textContent = 'コピーしました！';
+        setTimeout(() => { btn.textContent = 'リンクをコピー'; }, 2000);
       });
     });
 

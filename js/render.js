@@ -68,7 +68,7 @@ const Render = (() => {
     if (!ctx) return;
     ctx.clearRect(0, 0, W, H);
     drawBg();
-    drawGoalZones(myIndex);
+    drawGoalZones(state, myIndex);
     drawGrid();
     if (highlights && highlights.length) drawHighlights(highlights);
     if (wallPreview) drawWallPreview(wallPreview);
@@ -83,35 +83,32 @@ const Render = (() => {
   }
 
   // ── ゴールゾーン ───────────────────────────────────────────
-  function drawGoalZones(myIndex) {
+  function drawGoalZones(state, myIndex) {
     const { COLS, ROWS, CELL, PAD } = CFG;
-    const boardW = COLS * CELL;
+    const boardW    = COLS * CELL;
+    const firstTurn = state?.firstTurn ?? 0;
 
-    // 自分のゴール
-    const myGoalRow  = myIndex === 1 ? 0 : ROWS - 1;
-    const oppGoalRow = myIndex === 1 ? ROWS - 1 : 0;
 
-    ctx.fillStyle = myIndex === -1 ? 'rgba(0,229,255,0.04)' : CFG.GOAL_ME;
-    ctx.fillRect(PAD, PAD + myGoalRow * CELL, boardW, CELL);
+    // 先手のゴール色=SENTE、後手のゴール色=GOTE
+    const p0Color = firstTurn === 0 ? CFG.GOAL_SENTE : CFG.GOAL_GOTE;
+    const p1Color = firstTurn === 1 ? CFG.GOAL_SENTE : CFG.GOAL_GOTE;
 
-    ctx.fillStyle = myIndex === -1 ? 'rgba(255,77,109,0.04)' : CFG.GOAL_OPP;
-    ctx.fillRect(PAD, PAD + oppGoalRow * CELL, boardW, CELL);
+    ctx.fillStyle = p1Color;  // 上端 = players[1] のゴール
+    ctx.fillRect(PAD, PAD, boardW, CELL);
+    ctx.fillStyle = p0Color;  // 下端 = players[0] のゴール
+    ctx.fillRect(PAD, PAD + (ROWS - 1) * CELL, boardW, CELL);
 
     ctx.font = '600 9px "Space Mono", monospace';
     ctx.letterSpacing = '0.1em';
 
-    if (myIndex === -1) {
-      // 観戦: player名で表示
-      ctx.fillStyle = 'rgba(0,229,255,0.25)';
-      ctx.fillText('P0 GOAL', PAD + 4, PAD + (ROWS - 1) * CELL + 14);
-      ctx.fillStyle = 'rgba(255,77,109,0.25)';
-      ctx.fillText('P1 GOAL', PAD + 4, PAD + 14);
-    } else {
-      ctx.fillStyle = 'rgba(0,229,255,0.3)';
-      ctx.fillText('MY GOAL', PAD + 4, PAD + myGoalRow * CELL + 14);
-      ctx.fillStyle = 'rgba(255,77,109,0.3)';
-      ctx.fillText('OPP GOAL', PAD + 4, PAD + oppGoalRow * CELL + 14);
-    }
+    const senteAlpha = firstTurn === 0 ? 'rgba(0,229,255,0.3)' : 'rgba(255,77,109,0.3)';
+    const goteAlpha  = firstTurn === 1 ? 'rgba(0,229,255,0.3)' : 'rgba(255,77,109,0.3)';
+
+    // 下端ラベル
+    ctx.fillStyle = firstTurn === 0 ? senteAlpha : goteAlpha;
+    ctx.fillText('先手のゴール', PAD + 4, PAD + (ROWS - 1) * CELL + 14);
+    // 上端ラベル
+    ctx.fillStyle = firstTurn === 1 ? senteAlpha : goteAlpha;    ctx.fillText('後手のゴール', PAD + 4, PAD + 14);
   }
 
   // ── グリッド ───────────────────────────────────────────────
@@ -182,15 +179,14 @@ const Render = (() => {
   }
 
   // ── 壁 ─────────────────────────────────────────────────────
+  // 先手の壁=青、後手の壁=赤 で統一
   function drawWalls(state, myIndex) {
     const { CELL, PAD, WALL_T } = CFG;
     const firstTurn = state.firstTurn ?? 0;
 
     function wallStyle(owner) {
       const isSente = owner === firstTurn;
-      return isSente
-        ? { color: '#1166cc', shadow: 'rgba(0,150,255,0.7)' }
-        : { color: '#cc1133', shadow: 'rgba(255,60,80,0.7)'  };
+      return isSente ? { color: CFG.WALL_SENTE,    shadow: CFG.WALL_SENTE_GL } : { color: CFG.WALL_GOTE,     shadow: CFG.WALL_GOTE_GL  };
     }
 
     for (const { c, r, owner } of state.walls.h) {
@@ -219,12 +215,13 @@ const Render = (() => {
   }
 
   // ── コマ ───────────────────────────────────────────────────
+  // 先手 = シアン、後手 = 赤 で統一
   function drawPieces(state, myIndex) {
     const firstTurn = state.firstTurn ?? 0;
     state.players.forEach((p, idx) => {
       const isSente = idx === firstTurn;
-      const color = isSente ? CFG.COLOR_ME  : CFG.COLOR_OPP;
-      const glow  = isSente ? CFG.GLOW_ME   : CFG.GLOW_OPP;
+      const color = isSente ? CFG.COLOR_SENTE : CFG.COLOR_GOTE;
+      const glow  = isSente ? CFG.GLOW_SENTE  : CFG.GLOW_GOTE;
       const isTurn = state.turn === idx;
       drawPiece(p.col, p.row, color, glow, isTurn);
     });

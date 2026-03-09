@@ -216,6 +216,13 @@ input::placeholder { color: var(--dim2); }
 .btn-red::after  { background: rgba(255,77,109,0.1); }
 .btn-red:hover:not(:disabled) { box-shadow: var(--red-glow); }
 
+.btn-yel {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.btn-yel::after { background: rgba(255,149,0,0.1); }
+.btn-yel:hover:not(:disabled) { box-shadow: 0 0 24px rgba(255,149,0,0.4); }
+
 .btn-ghost {
   border-color: var(--border2);
   color: var(--dim);
@@ -253,6 +260,10 @@ input::placeholder { color: var(--dim2); }
 }
 
 /* ═══ ロビー画面 ══════════════════════════════════════════ */
+
+/* ピップ色: 上パネル(先手)=青、下パネル(後手)=赤 で固定 */
+#opp-panel .pip.pip-active { background: var(--cyan); }
+#my-panel  .pip.pip-active { background: var(--red); }
 
 #screen-lobby {
   padding-top: 0;
@@ -432,8 +443,6 @@ input::placeholder { color: var(--dim2); }
   transition: background 0.2s;
 }
 
-#my-panel  .pip.pip-active { background: var(--cyan); }
-#opp-panel .pip.pip-active { background: var(--red); }
 
 /* Canvasエリア */
 .canvas-wrap {
