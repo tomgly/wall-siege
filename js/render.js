@@ -88,8 +88,6 @@ const Render = (() => {
     const boardW    = COLS * CELL;
     const firstTurn = state?.firstTurn ?? 0;
 
-
-    // 先手のゴール色=SENTE、後手のゴール色=GOTE
     const p0Color = firstTurn === 0 ? CFG.GOAL_SENTE : CFG.GOAL_GOTE;
     const p1Color = firstTurn === 1 ? CFG.GOAL_SENTE : CFG.GOAL_GOTE;
 
@@ -101,14 +99,24 @@ const Render = (() => {
     ctx.font = '600 9px "Space Mono", monospace';
     ctx.letterSpacing = '0.1em';
 
-    const senteAlpha = firstTurn === 0 ? 'rgba(0,229,255,0.3)' : 'rgba(255,77,109,0.3)';
-    const goteAlpha  = firstTurn === 1 ? 'rgba(0,229,255,0.3)' : 'rgba(255,77,109,0.3)';
+    let topLabel, bottomLabel;
+    if (myIndex === -1) {
+      // 観戦: 先手/後手表記
+      topLabel    = firstTurn === 1 ? '先手のゴール' : '後手のゴール';
+      bottomLabel = firstTurn === 0 ? '先手のゴール' : '後手のゴール';
+    } else {
+      topLabel    = myIndex === 1 ? 'あなたのゴール' : '相手のゴール';
+      bottomLabel = myIndex === 0 ? 'あなたのゴール' : '相手のゴール';
+    }
 
-    // 下端ラベル
-    ctx.fillStyle = firstTurn === 0 ? senteAlpha : goteAlpha;
-    ctx.fillText('先手のゴール', PAD + 4, PAD + (ROWS - 1) * CELL + 14);
     // 上端ラベル
-    ctx.fillStyle = firstTurn === 1 ? senteAlpha : goteAlpha;    ctx.fillText('後手のゴール', PAD + 4, PAD + 14);
+    ctx.fillStyle = firstTurn === 1
+      ? 'rgba(0,229,255,0.3)' : 'rgba(255,77,109,0.3)';
+    ctx.fillText(topLabel,    PAD + 4, PAD + 14);
+    // 下端ラベル
+    ctx.fillStyle = firstTurn === 0
+      ? 'rgba(0,229,255,0.3)' : 'rgba(255,77,109,0.3)';
+    ctx.fillText(bottomLabel, PAD + 4, PAD + (ROWS - 1) * CELL + 14);
   }
 
   // ── グリッド ───────────────────────────────────────────────
@@ -179,14 +187,13 @@ const Render = (() => {
   }
 
   // ── 壁 ─────────────────────────────────────────────────────
-  // 先手の壁=青、後手の壁=赤 で統一
   function drawWalls(state, myIndex) {
     const { CELL, PAD, WALL_T } = CFG;
     const firstTurn = state.firstTurn ?? 0;
 
     function wallStyle(owner) {
       const isSente = owner === firstTurn;
-      return isSente ? { color: CFG.WALL_SENTE,    shadow: CFG.WALL_SENTE_GL } : { color: CFG.WALL_GOTE,     shadow: CFG.WALL_GOTE_GL  };
+      return isSente ? { color: CFG.WALL_SENTE, shadow: CFG.WALL_SENTE_GL } : { color: CFG.WALL_GOTE, shadow: CFG.WALL_GOTE_GL  };
     }
 
     for (const { c, r, owner } of state.walls.h) {
@@ -215,7 +222,6 @@ const Render = (() => {
   }
 
   // ── コマ ───────────────────────────────────────────────────
-  // 先手 = シアン、後手 = 赤 で統一
   function drawPieces(state, myIndex) {
     const firstTurn = state.firstTurn ?? 0;
     state.players.forEach((p, idx) => {

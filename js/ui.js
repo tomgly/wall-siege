@@ -24,37 +24,20 @@ const UI = (() => {
     _applyUrlParams();
   }
 
-  // ── URLパラメータを読んで自動接続 ────────────
+  // ── URLパラメータを読んでコードを自動入力 ────────────────
   function _applyUrlParams() {
     const params = new URLSearchParams(location.search);
     const code   = params.get('code');
-    const user   = params.get('user');
-
     if (code) {
       document.getElementById('input-room-code').value = code.toUpperCase();
     }
-
-    // user=-1 のときだけ観戦として自動接続
-    if (code && user === '-1') {
-      setTimeout(async () => {
-        try {
-          await Network.spectateRoom(code);
-          myIndex = -1;
-          showScreen('screen-waiting');
-          setStatus('観戦を待っています…');
-        } catch (e) { showScreen('screen-lobby'); }
-      }, 300);
-      return;
-    }
-
     showScreen('screen-lobby');
   }
 
   // ── URLを更新 ───────────────────────────
-  function _setUrl(code, spectate = false) {
+  function _setUrl(code) {
     const params = new URLSearchParams();
     if (code) params.set('code', code);
-    if (spectate) params.set('user', '-1');
     history.replaceState(null, '', '?' + params.toString());
   }
 
@@ -86,23 +69,28 @@ const UI = (() => {
   function updatePlayerInfo() {
     if (!gameState) return;
 
-    // 上パネル(opp-panel) = players[0] = 先手（固定・青）
-    // 下パネル(my-panel)  = players[1] = 後手（固定・赤）
     const p0 = gameState.players[0];
     const p1 = gameState.players[1];
 
-    document.getElementById('opp-name').textContent = p0.name || '---';
-    document.getElementById('my-name').textContent  = p1.name || '---';
-    document.getElementById('opp-walls').textContent = p0.wallsLeft;
-    document.getElementById('my-walls').textContent  = p1.wallsLeft;
+    document.getElementById('sente-name').textContent = p0.name || '---';
+    document.getElementById('gote-name').textContent  = p1.name || '---';
+    document.getElementById('sente-walls').textContent = p0.wallsLeft;
+    document.getElementById('gote-walls').textContent  = p1.wallsLeft;
 
-    // ラベル: 先手/後手 固定
-    document.getElementById('opp-label').textContent = '先手';
-    document.getElementById('my-label').textContent  = '後手';
+    // ラベル: 先手/後手 + （あなた）or（相手）
+    const myIsP0 = myIndex === 0;
+    const myIsP1 = myIndex === 1;
+    if (myIndex === -1) {
+      document.getElementById('sente-label').textContent = '先手';
+      document.getElementById('gote-label').textContent  = '後手';
+    } else {
+      document.getElementById('sente-label').textContent = '先手（' + (myIsP0 ? 'あなた' : '相手') + '）';
+      document.getElementById('gote-label').textContent  = '後手（' + (myIsP1 ? 'あなた' : '相手') + '）';
+    }
 
     // ターンハイライト: turn===0 なら上、turn===1 なら下がアクティブ
-    document.getElementById('opp-panel').classList.toggle('panel-active', gameState.turn === 0);
-    document.getElementById('my-panel').classList.toggle('panel-active',  gameState.turn === 1);
+    document.getElementById('sente-panel').classList.toggle('panel-active', gameState.turn === 0);
+    document.getElementById('gote-panel').classList.toggle('panel-active',  gameState.turn === 1);
 
     // 壁ボタン: 観戦・自分のターン以外は無効
     const isSpectator = myIndex === -1;
@@ -169,7 +157,7 @@ const UI = (() => {
       if (!code) { _flashError('input-room-code', 'ルームコードを入力してください'); return; }
 
       _setLoading('btn-spectate', true);
-      _setUrl(code, true);
+      _setUrl(code);
       try {
         await Network.spectateRoom(code);
         myIndex = -1;
@@ -196,7 +184,7 @@ const UI = (() => {
     // ── リンクコピー ────────────────────────────────────────
     document.getElementById('btn-copy-link').addEventListener('click', () => {
       const code = document.getElementById('room-code-display').textContent;
-      const url  = `${location.origin}${location.pathname}?code=${code}&user=-1`;
+      const url  = `${location.origin}${location.pathname}?code=${code}`;
       navigator.clipboard.writeText(url).then(() => {
         const btn = document.getElementById('btn-copy-link');
         btn.textContent = 'コピーしました！';
