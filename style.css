@@ -30,6 +30,11 @@ body {
   position: relative;
 }
 
+body.no-scroll {
+  overflow: hidden;
+  height: 100dvh;
+}
+
 /* 背景グリッド */
 body::before {
   content: '';
@@ -357,8 +362,7 @@ input::placeholder { color: var(--dim2); }
   padding-top: 0;
   padding-bottom: 24px;
   gap: 0;
-  overflow: hidden;
-  touch-action: none;
+  min-height: 100dvh;
 }
 
 /* プレイヤーパネル行 */
