@@ -71,7 +71,7 @@ const Render = (() => {
     drawGoalZones(state, myIndex);
     drawGrid();
     if (highlights && highlights.length) drawHighlights(highlights);
-    if (wallPreview) drawWallPreview(wallPreview);
+    if (wallPreview) drawWallPreview(wallPreview, state, myIndex);
     drawWalls(state, myIndex);
     drawPieces(state, myIndex);
   }
@@ -99,6 +99,7 @@ const Render = (() => {
     ctx.font = '600 9px "Space Mono", monospace';
     ctx.letterSpacing = '0.1em';
 
+    // ラベルテキスト決定
     let topLabel, bottomLabel;
     if (myIndex === -1) {
       // 観戦: 先手/後手表記
@@ -166,9 +167,16 @@ const Render = (() => {
   }
 
   // ── 壁プレビュー ───────────────────────────────────────────
-  function drawWallPreview({ c, r, dir, valid }) {
+  function drawWallPreview({ c, r, dir, valid }, state, myIndex) {
     const { CELL, PAD, WALL_T } = CFG;
-    ctx.fillStyle = valid ? CFG.WALL_PREVIEW_OK : CFG.WALL_PREVIEW_NG;
+    if (!valid) {
+      ctx.fillStyle = CFG.WALL_PREVIEW_NG;
+    } else {
+      // 自分が先手か後手かで色を決める
+      const firstTurn = state?.firstTurn ?? 0;
+      const isSente = myIndex === firstTurn;
+      ctx.fillStyle = isSente ? 'rgba(0,229,255,0.45)' : 'rgba(255,77,109,0.45)';
+    }
     if (dir === 'h') {
       ctx.fillRect(
         PAD + c * CELL,
