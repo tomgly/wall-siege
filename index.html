@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>WALL SIEGE</title>
 
 <!-- ファビコン -->
@@ -229,7 +229,6 @@
 function updateWallPips(panelId, current, max) {
   const container = document.getElementById(panelId + '-wall-pips');
   if (!container) return;
-  // pip数がmaxと違うときだけ再生成
   if (container.children.length !== max) {
     container.innerHTML = '';
     for (let i = 0; i < max; i++) {

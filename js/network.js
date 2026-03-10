@@ -10,6 +10,7 @@ const Network = (() => {
   let _onGameAction      = null;  // (action) => void
   let _onOpponentLeft    = null;  // () => void
   let _onSpectateSync    = null;  // (gameState, nameA, nameB) => void
+  let _onForcedSpectate  = null;  // () => void
 
   // ── Supabase 初期化 ────────────────────────────────────────
   function init() {
@@ -70,12 +71,32 @@ const Network = (() => {
 
     // 相手が参加してきた
     _channel.on('broadcast', { event: 'player_join' }, ({ payload }) => {
-      if (_onOpponentJoined) _onOpponentJoined(payload.name, null);
+      if (_myIndex === 0) {
+        // ゲームがすでに始まっているなら観戦に誘導
+        if (_onOpponentJoined) _onOpponentJoined(payload.name, null);
+      }
     });
 
     // ホストがゲストの参加を承認して返す
     _channel.on('broadcast', { event: 'join_ack' }, ({ payload }) => {
-      if (_onOpponentJoined) _onOpponentJoined(payload.hostName, payload.firstTurn);
+      if (_myIndex === 1) {
+        if (_onOpponentJoined) _onOpponentJoined(payload.hostName, payload.firstTurn);
+      }
+    });
+
+    // ホストが満員を通知（3人目以降のゲスト向け）
+    _channel.on('broadcast', { event: 'room_full' }, () => {
+      if (_myIndex === 1 && _onForcedSpectate) {
+        // ゲストとして参加しようとしたが満員 → 観戦モードへ
+        _myIndex = -1;
+        _onForcedSpectate();
+        // 観戦者として state_sync を要求
+        _channel.send({
+          type: 'broadcast',
+          event: 'spectator_join',
+          payload: {}
+        });
+      }
     });
 
     // ゲームアクション
@@ -98,7 +119,6 @@ const Network = (() => {
     // 観戦者が参加してきた → ホストが state_sync を送る
     _channel.on('broadcast', { event: 'spectator_join' }, () => {
       if (_myIndex === 0) {
-        // ホスト側: ui.js の _onSpectatorJoined コールバックを呼ぶ
         if (_onSpectatorJoined) _onSpectatorJoined();
       }
     });
@@ -127,6 +147,16 @@ const Network = (() => {
       type: 'broadcast',
       event: 'join_ack',
       payload: { hostName, firstTurn }
+    });
+  }
+
+  // ── 満員通知 ──────────────
+  async function sendRoomFull() {
+    if (!_channel) return;
+    await _channel.send({
+      type: 'broadcast',
+      event: 'room_full',
+      payload: {}
     });
   }
 
@@ -169,6 +199,7 @@ const Network = (() => {
   function onOpponentLeft(fn)    { _onOpponentLeft    = fn; }
   function onSpectateSync(fn)    { _onSpectateSync    = fn; }
   function onSpectatorJoined(fn) { _onSpectatorJoined = fn; }
+  function onForcedSpectate(fn)  { _onForcedSpectate  = fn; }
 
   // ── ゲッター ──────────────────────────────────────────────
   function getMyIndex()  { return _myIndex;  }
@@ -180,6 +211,7 @@ const Network = (() => {
     joinRoom,
     spectateRoom,
     ackJoin,
+    sendRoomFull,
     sendStateSync,
     sendAction,
     leave,
@@ -188,6 +220,7 @@ const Network = (() => {
     onOpponentLeft,
     onSpectateSync,
     onSpectatorJoined,
+    onForcedSpectate,
     getMyIndex,
     getRoomCode,
   };

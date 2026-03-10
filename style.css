@@ -16,10 +16,9 @@
   --font-jp:   'Zen Kaku Gothic New', sans-serif;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 /* ダブルタップズーム無効化 */
-* { touch-action: manipulation; }
+* { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+*::before, *::after { box-sizing: border-box; }
 canvas { touch-action: none; }
 
 body {
@@ -77,11 +76,11 @@ body::after {
 }
 .screen.active { display: flex; }
 
-/* タイトルバー */
+/* タイトルバー — ノッチ/ステータスバー対応 */
 .title-bar {
   width: 100%;
   padding: 14px 20px;
-  padding-top: calc(14px + env(safe-area-inset-top));
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -468,7 +467,7 @@ canvas {
   image-rendering: pixelated;
 }
 
-/* コントロールバー（マウス用） */
+/* ── コントロールバー（マウス用）: タッチデバイスでは非表示 */
 .control-bar {
   width: 100%;
   display: flex;
@@ -509,23 +508,20 @@ canvas {
   cursor: not-allowed;
 }
 
-/* マウスではタッチバー非表示、タッチではマウスバー非表示 */
-.touch-control-bar { display: none; }
-
-@media (pointer: coarse) {
-  .control-bar { display: none; }
-  .touch-control-bar { display: flex; }
-}
-
-/* タッチ用コントロールバー */
+/* ── タッチ用コントロールバー */
 .touch-control-bar {
+  display: none;  /* デフォルト非表示 */
   width: 100%;
-  display: flex;
   gap: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-top: none;
   padding: 8px 10px;
+}
+
+@media (pointer: coarse) {
+  .control-bar      { display: none; }
+  .touch-control-bar { display: flex; }
 }
 
 .touch-btn {
@@ -547,11 +543,6 @@ canvas {
   cursor: not-allowed;
 }
 
-/* 壁設置ボタン: プレビューあり時にシアンで強調 */
-#btn-touch-place {
-  border-color: var(--border2);
-  color: var(--dim);
-}
 #btn-touch-place.preview-ready {
   border-color: var(--cyan);
   color: var(--cyan);
@@ -559,11 +550,6 @@ canvas {
   box-shadow: var(--cyan-glow);
 }
 
-/* キャンセルボタン */
-#btn-touch-cancel {
-  border-color: var(--border2);
-  color: var(--dim);
-}
 #btn-touch-cancel.preview-ready {
   border-color: var(--red);
   color: var(--red);

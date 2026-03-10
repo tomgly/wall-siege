@@ -8,6 +8,7 @@ const UI = (() => {
   let wallPreview = null;
   let myTurn      = false;
   let playerNames = ['', ''];
+  let _gameStarted = false;   // ゲームが開始済みかどうか
 
   const canvas = document.getElementById('game-canvas');
 
@@ -56,7 +57,6 @@ const UI = (() => {
 
   function setStatus(html) {
     document.getElementById('status-text').innerHTML = html;
-    // 待機画面にも反映
     const ws = document.getElementById('waiting-status-text');
     if (ws) ws.innerHTML = html;
   }
@@ -89,7 +89,7 @@ const UI = (() => {
       document.getElementById('gote-label').textContent  = '後手（' + (myIsP1 ? 'あなた' : '相手') + '）';
     }
 
-    // ターンハイライト: turn===0 なら上、turn===1 なら下がアクティブ
+    // ターンハイライト
     document.getElementById('sente-panel').classList.toggle('panel-active', gameState.turn === 0);
     document.getElementById('gote-panel').classList.toggle('panel-active',  gameState.turn === 1);
 
@@ -118,6 +118,7 @@ const UI = (() => {
       try {
         const code = await Network.createRoom(name);
         myIndex = 0;
+        _gameStarted = false;
         _setUrl(code);
         document.getElementById('room-code-display').textContent = code;
         showScreen('screen-waiting');
@@ -144,7 +145,7 @@ const UI = (() => {
 
       try {
         myIndex = await Network.joinRoom(code, name);
-        // join_ack を待つ（_bindNetworkEvents で処理）
+        // join_ack または room_full を待つ
       } catch (e) {
         console.error(e);
         alert('参加に失敗しました: ' + e.message);
@@ -164,7 +165,6 @@ const UI = (() => {
         myIndex = -1;
         showScreen('screen-waiting');
         setStatus('観戦を待っています…');
-        // state_sync が届くまで待機（_bindNetworkEvents で処理）
       } catch (e) {
         console.error(e);
         alert('観戦に失敗しました: ' + e.message);
@@ -203,12 +203,13 @@ const UI = (() => {
       Network.leave();
       _clearUrl();
       document.getElementById('result-overlay').classList.remove('show');
-      gameState  = null;
-      myIndex    = -1;
-      inputMode  = 'move';
-      highlights = [];
-      wallPreview = null;
-      playerNames = ['', ''];
+      gameState    = null;
+      myIndex      = -1;
+      inputMode    = 'move';
+      highlights   = [];
+      wallPreview  = null;
+      playerNames  = ['', ''];
+      _gameStarted = false;
       document.getElementById('input-room-code').value = '';
       showScreen('screen-lobby');
     });
@@ -222,17 +223,34 @@ const UI = (() => {
     // ゲスト参加通知 → ホストに届く
     Network.onOpponentJoined(async (opponentName, firstTurn) => {
       if (myIndex === 0) {
-        // ホスト: 先手をランダム決定して承認と一緒に送る
+        // ホスト側
+        if (_gameStarted) {
+          // すでにゲーム中 → 満員通知して観戦に誘導
+          await Network.sendRoomFull();
+          // 観戦者として state_sync を送る
+          return;
+        }
+        // 正常な参加 → ゲーム開始
         playerNames[1] = opponentName;
         const ft = Math.random() < 0.5 ? 0 : 1;
         await Network.ackJoin(playerNames[0], ft);
+        _gameStarted = true;
         _startGame(playerNames[0], playerNames[1], ft);
       } else {
         // ゲスト: ホスト名と先手情報が届いた → ゲーム開始
         playerNames[0] = opponentName;
+        _gameStarted = true;
         _startGame(playerNames[0], playerNames[1], firstTurn);
         _setLoading('btn-join', false);
       }
+    });
+
+    // 3人目以降: 満員のため観戦モードに強制移行
+    Network.onForcedSpectate(() => {
+      myIndex = -1;
+      _setLoading('btn-join', false);
+      showScreen('screen-waiting');
+      setStatus('満員のため観戦モードに切り替えました…');
     });
 
     // 観戦者が参加 → ホストが現在の状態を送信
@@ -262,12 +280,15 @@ const UI = (() => {
 
     // 相手が切断
     Network.onOpponentLeft(() => {
-      if (!gameState || gameState.over) return;
-      const msg = myIndex === -1 ? '⚡ ゲームが終了しました' : '⚡ 相手が切断しました';
-      setStatus(msg);
-      document.getElementById('result-title').textContent = myIndex === -1 ? 'ゲーム終了' : '相手が切断しました';
-      document.getElementById('result-sub').textContent   = '接続が切れました';
-      showResultOverlay(false);
+      // 観戦者 or ゲーム未開始 or 終了済みは無視
+      if (myIndex === -1 || !gameState || gameState.over) return;
+      Network.leave();
+      _clearUrl();
+      _gameStarted = false;
+      document.getElementById('result-title').textContent = '相手が切断しました';
+      document.getElementById('result-sub').textContent   = 'ロビーに戻ります';
+      document.getElementById('result-overlay').style.setProperty('--result-color', 'var(--red)');
+      document.getElementById('result-overlay').classList.add('show');
     });
   }
 
@@ -364,6 +385,8 @@ const UI = (() => {
     }, { passive: false });
 
     // ── タッチ用ボタン ────────────────────────────────────
+
+    // 移動モードに戻る
     document.getElementById('btn-touch-move').addEventListener('click', () => {
       wallPreview = null;
       inputMode = 'move';
@@ -372,6 +395,7 @@ const UI = (() => {
       Render.draw(gameState, myIndex, highlights, null);
     });
 
+    // 壁設置確定
     document.getElementById('btn-touch-place').addEventListener('click', () => {
       if (!wallPreview || !wallPreview.valid) return;
       const { c, r, dir } = wallPreview;
@@ -380,6 +404,7 @@ const UI = (() => {
       _doWall(c, r, dir);
     });
 
+    // キャンセル → プレビュー破棄 & 移動モードへ
     document.getElementById('btn-touch-cancel').addEventListener('click', () => {
       wallPreview = null;
       inputMode = 'move';
@@ -428,7 +453,6 @@ const UI = (() => {
       const isHighlighted = highlights.some(h => h.col === cell.col && h.row === cell.row);
       if (!isHighlighted) return;
       _doMove(cell.col, cell.row);
-
     } else {
       const dir = inputMode === 'wall-h' ? 'h' : 'v';
       const hit = Render.xyWallHit(x, y, dir);
@@ -475,8 +499,6 @@ const UI = (() => {
     cancelBtn.disabled = !hasPreview;
     placeBtn.classList.toggle('preview-ready',  canPlace);
     cancelBtn.classList.toggle('preview-ready', hasPreview);
-    if (!canPlace) placeBtn.classList.remove('preview-ready');
-    if (!hasPreview) cancelBtn.classList.remove('preview-ready');
   }
 
   // ─────────────────────────────────────────────────────────
@@ -514,7 +536,9 @@ const UI = (() => {
 
   function _refreshHighlights() {
     myTurn = myIndex !== -1 && (gameState.turn === myIndex);
-    highlights = (myTurn && !gameState.over && inputMode === 'move') ? Game.legalMoves(gameState, myIndex) : [];
+    highlights = (myTurn && !gameState.over && inputMode === 'move')
+      ? Game.legalMoves(gameState, myIndex)
+      : [];
     if (!myTurn) { wallPreview = null; _updateTouchBtns(); }
   }
 
