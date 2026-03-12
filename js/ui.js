@@ -52,7 +52,7 @@ const UI = (() => {
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    document.body.classList.toggle('no-scroll', id === 'screen-game');
+    document.body.classList.toggle('game-active', id === 'screen-game');
   }
 
   function setStatus(html) {
